@@ -1,27 +1,51 @@
+/* styles.css */
 body {
     font-family: Arial, sans-serif;
-    margin: 20px;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
 }
 
 h1, h2 {
     text-align: center;
 }
 
-table {
+.form-container {
+    max-width: 500px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+form input {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+form button {
     width: 100%;
-    border-collapse: collapse;
-    margin-bottom: 20px;
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
 }
 
-table, th, td {
-    border: 1px solid black;
+form button:hover {
+    background-color: #218838;
 }
 
-th, td {
-    padding: 8px;
-    text-align: left;
-}
-
-thead {
-    background-color: #f2f2f2;
+.members-list {
+    max-width: 500px;
+    margin: 20px auto;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
