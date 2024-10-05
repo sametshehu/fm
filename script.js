@@ -4,12 +4,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebas
 import { getFirestore, collection, addDoc, getDocs, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
 
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_AUTH_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_STORAGE_BUCKET",
-    messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
+  authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
+  projectId: "mitgliederverwaltung-3458b",
+  storageBucket: "mitgliederverwaltung-3458b.appspot.com",
+  messagingSenderId: "916656812587",
+  appId: "1:916656812587:web:23b510f805c800f62af06e"
 };
 
 // Firebase initialisieren
