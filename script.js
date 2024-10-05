@@ -1,8 +1,5 @@
 /* script.js */
 // Firebase-Konfiguration
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore.js";
-
 const firebaseConfig = {
   apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
   authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
@@ -13,11 +10,11 @@ const firebaseConfig = {
 };
 
 // Firebase initialisieren
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
 
 // Mitglieder-Collection referenzieren
-const membersCollection = collection(db, "members");
+const membersCollection = db.collection("members");
 
 // Neues Mitglied hinzufügen
 const addMemberForm = document.getElementById("addMemberForm");
@@ -27,7 +24,7 @@ addMemberForm.addEventListener("submit", async (e) => {
     const email = document.getElementById("email").value;
     const phone = document.getElementById("phone").value;
     try {
-        await addDoc(membersCollection, { name, email, phone });
+        await membersCollection.add({ name, email, phone });
         addMemberForm.reset();
     } catch (error) {
         console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
@@ -36,7 +33,7 @@ addMemberForm.addEventListener("submit", async (e) => {
 
 // Mitgliederliste anzeigen
 const membersList = document.getElementById("members");
-onSnapshot(membersCollection, (snapshot) => {
+membersCollection.onSnapshot((snapshot) => {
     membersList.innerHTML = "";
     snapshot.forEach((doc) => {
         const member = doc.data();
