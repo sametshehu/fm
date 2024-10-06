@@ -1,43 +1,88 @@
-// Firebase-Konfiguration
-const firebaseConfig = {
-  apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
-  authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
-  projectId: "mitgliederverwaltung-3458b",
-  storageBucket: "mitgliederverwaltung-3458b.appspot.com",
-  messagingSenderId: "916656812587",
-  appId: "1:916656812587:web:23b510f805c800f62af06e"
-};
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f4f4f4;
+}
 
-// Firebase initialisieren
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+h1, h2 {
+    text-align: center;
+}
 
-// Mitglieder-Collection referenzieren
-const membersCollection = db.collection("members");
+.form-container {
+    max-width: 500px;
+    margin: 0 auto;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
 
-// Neues Mitglied hinzufügen
-const addMemberForm = document.getElementById("addMemberForm");
-addMemberForm.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    const name = document.getElementById("name").value;
-    const email = document.getElementById("email").value;
-    const phone = document.getElementById("phone").value;
-    try {
-        await membersCollection.add({ name, email, phone });
-        addMemberForm.reset();
-    } catch (error) {
-        console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
-    }
-});
+form input {
+    width: calc(100% - 22px);
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
 
-// Mitgliederliste anzeigen
-const membersList = document.getElementById("members");
-membersCollection.onSnapshot((snapshot) => {
-    membersList.innerHTML = "";
-    snapshot.forEach((doc) => {
-        const member = doc.data();
-        const li = document.createElement("li");
-        li.textContent = `${member.name} - ${member.email} - ${member.phone}`;
-        membersList.appendChild(li);
-    });
-});
+form button {
+    width: 100%;
+    padding: 10px;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+form button:hover {
+    background-color: #218838;
+}
+
+.members-list {
+    max-width: 500px;
+    margin: 20px auto;
+    background: #ffffff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Modal Styling */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.modal-content {
+    background-color: #fff;
+    margin: 10% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 500px;
+    border-radius: 8px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
