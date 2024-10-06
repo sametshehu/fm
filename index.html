@@ -233,4 +233,23 @@
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("addName").value;
-            const email = document
+            const email = document.getElementById("addEmail").value;
+            const phone = document.getElementById("addPhone").value;
+            try {
+                await membersCollection.add({ name, email, phone });
+                addMemberForm.reset();
+                addMemberModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
+            }
+        });
+
+        // Mitgliederliste anzeigen
+        const membersTable = document.getElementById("members");
+        membersCollection.onSnapshot((snapshot) => {
+            console.log("Snapshot erhalten", snapshot);
+            membersTable.innerHTML = "";
+            if (snapshot.empty) {
+                document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
+            } else {
+                document.getElementBy
