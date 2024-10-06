@@ -26,6 +26,20 @@
         <ul id="members"></ul>
     </div>
 
+    <!-- Modal zum Bearbeiten eines Mitglieds -->
+    <div id="editMemberModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span id="closeModal" class="close">&times;</span>
+            <h2>Mitglied bearbeiten</h2>
+            <form id="editMemberForm">
+                <input type="text" id="editName" placeholder="Name" required>
+                <input type="email" id="editEmail" placeholder="Email" required>
+                <input type="text" id="editPhone" placeholder="Telefonnummer" required>
+                <button type="submit">Speichern</button>
+            </form>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <script>
@@ -69,8 +83,48 @@
                 const member = doc.data();
                 const li = document.createElement("li");
                 li.textContent = `${member.name} - ${member.email} - ${member.phone}`;
+                li.setAttribute("data-id", doc.id);
+
+                // Bearbeiten-Button hinzufügen
+                const editButton = document.createElement("button");
+                editButton.textContent = "Bearbeiten";
+                editButton.addEventListener("click", () => openEditModal(doc.id, member));
+                li.appendChild(editButton);
+
                 membersList.appendChild(li);
             });
+        });
+
+        // Bearbeiten-Modul öffnen
+        const editMemberModal = document.getElementById("editMemberModal");
+        const closeModal = document.getElementById("closeModal");
+        const editMemberForm = document.getElementById("editMemberForm");
+        let currentEditId = null;
+
+        function openEditModal(id, member) {
+            currentEditId = id;
+            document.getElementById("editName").value = member.name;
+            document.getElementById("editEmail").value = member.email;
+            document.getElementById("editPhone").value = member.phone;
+            editMemberModal.style.display = "block";
+        }
+
+        closeModal.addEventListener("click", () => {
+            editMemberModal.style.display = "none";
+        });
+
+        // Mitglied bearbeiten
+        editMemberForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("editName").value;
+            const email = document.getElementById("editEmail").value;
+            const phone = document.getElementById("editPhone").value;
+            try {
+                await membersCollection.doc(currentEditId).update({ name, email, phone });
+                editMemberModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Bearbeiten des Mitglieds: ", error);
+            }
         });
     </script>
 </body>
