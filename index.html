@@ -233,9 +233,4 @@
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("addName").value;
-            const email = document.getElementById("addEmail").value;
-            const phone = document.getElementById("addPhone").value;
-            try {
-                await membersCollection.add({ name, email, phone });
-                addMemberForm.reset();
-                addMemberModal.style.display = "none"
+            const email = document
