@@ -108,16 +108,21 @@
 <body>
     <h1>Moschee Drita - Mitgliederverwaltung</h1>
     
-    <!-- Formular zur Mitgliedsdaten-Erfassung -->
-    <div class="form-container">
-        <h2>Neues Mitglied hinzufügen</h2>
-        <form id="addMemberForm">
-            <input type="text" id="name" placeholder="Name" required>
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="text" id="phone" placeholder="Telefonnummer" required>
-            <button type="submit">Hinzufügen</button>
-        </form>
+    <!-- Modal zum Hinzufügen eines Mitglieds -->
+    <div id="addMemberModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span id="closeAddModal" class="close">&times;</span>
+            <h2>Neues Mitglied hinzufügen</h2>
+            <form id="addMemberForm">
+                <input type="text" id="addName" placeholder="Name" required>
+                <input type="email" id="addEmail" placeholder="Email" required>
+                <input type="text" id="addPhone" placeholder="Telefonnummer" required>
+                <button type="submit">Hinzufügen</button>
+            </form>
+        </div>
     </div>
+
+    <button id="openAddModalButton" style="display: block; margin: 20px auto;">Neues Mitglied hinzufügen</button>
 
     <!-- Mitgliederliste -->
     <div class="members-list">
@@ -169,16 +174,30 @@
         // Mitglieder-Collection referenzieren
         const membersCollection = db.collection("members");
 
+        // Neues Mitglied hinzufügen - Modal öffnen
+        const addMemberModal = document.getElementById("addMemberModal");
+        const openAddModalButton = document.getElementById("openAddModalButton");
+        const closeAddModal = document.getElementById("closeAddModal");
+
+        openAddModalButton.addEventListener("click", () => {
+            addMemberModal.style.display = "block";
+        });
+
+        closeAddModal.addEventListener("click", () => {
+            addMemberModal.style.display = "none";
+        });
+
         // Neues Mitglied hinzufügen
         const addMemberForm = document.getElementById("addMemberForm");
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const name = document.getElementById("name").value;
-            const email = document.getElementById("email").value;
-            const phone = document.getElementById("phone").value;
+            const name = document.getElementById("addName").value;
+            const email = document.getElementById("addEmail").value;
+            const phone = document.getElementById("addPhone").value;
             try {
                 await membersCollection.add({ name, email, phone });
                 addMemberForm.reset();
+                addMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
             }
@@ -250,4 +269,3 @@
     </script>
 </body>
 </html>
-
