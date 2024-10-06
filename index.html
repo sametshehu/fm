@@ -236,4 +236,98 @@
             const email = document.getElementById("addEmail").value;
             const phone = document.getElementById("addPhone").value;
             try {
-                await membersCollection.add
+                await membersCollection.add({ name, email, phone });
+                addMemberForm.reset();
+                addMemberModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
+            }
+        });
+
+        // Mitgliederliste anzeigen
+        const membersTable = document.getElementById("members");
+        membersCollection.onSnapshot((snapshot) => {
+            console.log("Snapshot erhalten", snapshot);
+            membersTable.innerHTML = "";
+            if (snapshot.empty) {
+                document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
+            } else {
+                snapshot.forEach((doc) => {
+                    const member = doc.data();
+                    console.log("Mitgliedsdaten: ", member);
+                    const tr = document.createElement("tr");
+                    tr.setAttribute("data-id", doc.id);
+
+                    const nameTd = document.createElement("td");
+                    nameTd.textContent = member.name;
+                    tr.appendChild(nameTd);
+
+                    const emailTd = document.createElement("td");
+                    emailTd.textContent = member.email;
+                    tr.appendChild(emailTd);
+
+                    const phoneTd = document.createElement("td");
+                    phoneTd.textContent = member.phone;
+                    tr.appendChild(phoneTd);
+
+                    const actionsTd = document.createElement("td");
+                    const editButton = document.createElement("button");
+                    editButton.textContent = "Bearbeiten";
+                    editButton.addEventListener("click", () => openEditModal(doc.id, member));
+                    actionsTd.appendChild(editButton);
+                    tr.appendChild(actionsTd);
+
+                    membersTable.appendChild(tr);
+                });
+                document.getElementById("loadingMessage").style.display = "none";
+            }
+        }, (error) => {
+            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
+            document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
+        });
+
+        // Bearbeiten-Modul öffnen
+        const editMemberModal = document.getElementById("editMemberModal");
+        const closeModal = document.getElementById("closeModal");
+        const editMemberForm = document.getElementById("editMemberForm");
+        const deleteMemberButton = document.getElementById("deleteMemberButton");
+        let currentEditId = null;
+
+        function openEditModal(id, member) {
+            currentEditId = id;
+            document.getElementById("editName").value = member.name;
+            document.getElementById("editEmail").value = member.email;
+            document.getElementById("editPhone").value = member.phone;
+            editMemberModal.style.display = "block";
+        }
+
+        closeModal.addEventListener("click", () => {
+            editMemberModal.style.display = "none";
+        });
+
+        // Mitglied bearbeiten
+        editMemberForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("editName").value;
+            const email = document.getElementById("editEmail").value;
+            const phone = document.getElementById("editPhone").value;
+            try {
+                await membersCollection.doc(currentEditId).update({ name, email, phone });
+                editMemberModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Bearbeiten des Mitglieds: ", error);
+            }
+        });
+
+        // Mitglied löschen
+        deleteMemberButton.addEventListener("click", async () => {
+            try {
+                await membersCollection.doc(currentEditId).delete();
+                editMemberModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Löschen des Mitglieds: ", error);
+            }
+        });
+    </script>
+</body>
+</html>
