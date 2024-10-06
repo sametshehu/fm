@@ -48,12 +48,13 @@
         }
 
         .members-list {
-            max-width: 800px;
+            max-width: 100%;
             margin: 20px auto;
             background: #ffffff;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
         }
 
         .members-list table {
@@ -84,7 +85,7 @@
             margin: 10% auto;
             padding: 20px;
             border: 1px solid #888;
-            width: 80%;
+            width: 90%;
             max-width: 500px;
             border-radius: 8px;
         }
@@ -103,6 +104,44 @@
             text-decoration: none;
             cursor: pointer;
         }
+
+        .delete-button {
+            background-color: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .delete-button:hover {
+            background-color: #c82333;
+        }
+
+        #openAddModalButton {
+            width: calc(100% - 40px);
+            max-width: 500px;
+            padding: 10px;
+            margin: 20px auto;
+            display: block;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        #openAddModalButton:hover {
+            background-color: #0056b3;
+        }
+
+        .loading {
+            text-align: center;
+            font-size: 18px;
+            margin: 20px 0;
+        }
     </style>
 </head>
 <body>
@@ -116,17 +155,18 @@
             <form id="addMemberForm">
                 <input type="text" id="addName" placeholder="Name" required>
                 <input type="email" id="addEmail" placeholder="Email" required>
-                <input type="text" id="addPhone" placeholder="Telefonnummer" required>
+                <input type="text" id="addPhone" placeholder="Telefonnummer" required pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
                 <button type="submit">Hinzufügen</button>
             </form>
         </div>
     </div>
 
-    <button id="openAddModalButton" style="display: block; margin: 20px auto;">Neues Mitglied hinzufügen</button>
+    <button id="openAddModalButton">Neues Mitglied hinzufügen</button>
 
     <!-- Mitgliederliste -->
     <div class="members-list">
         <h2>Mitgliederliste</h2>
+        <div class="loading" id="loadingMessage">Lade Mitglieder...</div>
         <table id="membersTable">
             <thead>
                 <tr>
@@ -148,9 +188,10 @@
             <form id="editMemberForm">
                 <input type="text" id="editName" placeholder="Name" required>
                 <input type="email" id="editEmail" placeholder="Email" required>
-                <input type="text" id="editPhone" placeholder="Telefonnummer" required>
+                <input type="text" id="editPhone" placeholder="Telefonnummer" required pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
                 <button type="submit">Speichern</button>
             </form>
+            <button id="deleteMemberButton" class="delete-button">Löschen</button>
         </div>
     </div>
 
@@ -197,75 +238,4 @@
             try {
                 await membersCollection.add({ name, email, phone });
                 addMemberForm.reset();
-                addMemberModal.style.display = "none";
-            } catch (error) {
-                console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
-            }
-        });
-
-        // Mitgliederliste anzeigen
-        const membersTable = document.getElementById("members");
-        membersCollection.onSnapshot((snapshot) => {
-            membersTable.innerHTML = "";
-            snapshot.forEach((doc) => {
-                const member = doc.data();
-                const tr = document.createElement("tr");
-                tr.setAttribute("data-id", doc.id);
-
-                const nameTd = document.createElement("td");
-                nameTd.textContent = member.name;
-                tr.appendChild(nameTd);
-
-                const emailTd = document.createElement("td");
-                emailTd.textContent = member.email;
-                tr.appendChild(emailTd);
-
-                const phoneTd = document.createElement("td");
-                phoneTd.textContent = member.phone;
-                tr.appendChild(phoneTd);
-
-                const actionsTd = document.createElement("td");
-                const editButton = document.createElement("button");
-                editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditModal(doc.id, member));
-                actionsTd.appendChild(editButton);
-                tr.appendChild(actionsTd);
-
-                membersTable.appendChild(tr);
-            });
-        });
-
-        // Bearbeiten-Modul öffnen
-        const editMemberModal = document.getElementById("editMemberModal");
-        const closeModal = document.getElementById("closeModal");
-        const editMemberForm = document.getElementById("editMemberForm");
-        let currentEditId = null;
-
-        function openEditModal(id, member) {
-            currentEditId = id;
-            document.getElementById("editName").value = member.name;
-            document.getElementById("editEmail").value = member.email;
-            document.getElementById("editPhone").value = member.phone;
-            editMemberModal.style.display = "block";
-        }
-
-        closeModal.addEventListener("click", () => {
-            editMemberModal.style.display = "none";
-        });
-
-        // Mitglied bearbeiten
-        editMemberForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const name = document.getElementById("editName").value;
-            const email = document.getElementById("editEmail").value;
-            const phone = document.getElementById("editPhone").value;
-            try {
-                await membersCollection.doc(currentEditId).update({ name, email, phone });
-                editMemberModal.style.display = "none";
-            } catch (error) {
-                console.error("Fehler beim Bearbeiten des Mitglieds: ", error);
-            }
-        });
-    </script>
-</body>
-</html>
+                addMemberModal.style.display = "none"
