@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Finanzverwaltung</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -68,58 +69,6 @@
             text-align: left;
         }
 
-        /* Modal Styling */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: #fff;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 8px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .delete-button {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .delete-button:hover {
-            background-color: #c82333;
-        }
-
         #openAddFinanceModalButton {
             width: calc(100% - 40px);
             max-width: 500px;
@@ -150,7 +99,7 @@
         <a href="finanzen.html">Finanzverwaltung</a>
     </nav>
     <h1>Moschee Drita - Finanzverwaltung</h1>
-
+    
     <!-- Modal zum Hinzufügen einer Finanztransaktion -->
     <div id="addFinanceModal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -166,8 +115,10 @@
     </div>
 
     <button id="openAddFinanceModalButton">Neue Finanztransaktion hinzufügen</button>
+    <button id="exportFinanceButton">Finanzdaten exportieren (Excel)</button>
+    <input type="file" id="importFinanceFile" accept=".xlsx, .xls" />
 
-    <!-- Finanzliste -->
+    <!-- Finanztransaktionsliste -->
     <div class="finance-list">
         <h2>Finanztransaktionen</h2>
         <div class="loading" id="loadingFinanceMessage">Lade Finanztransaktionen...</div>
@@ -177,26 +128,10 @@
                     <th>Datum</th>
                     <th>Bemerkung</th>
                     <th>Betrag</th>
-                    <th>Aktionen</th>
                 </tr>
             </thead>
             <tbody id="finances"></tbody>
         </table>
-    </div>
-
-    <!-- Modal zum Bearbeiten einer Finanztransaktion -->
-    <div id="editFinanceModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span id="closeEditFinanceModal" class="close">&times;</span>
-            <h2>Finanztransaktion bearbeiten</h2>
-            <form id="editFinanceForm">
-                <input type="date" id="editFinanceDate" placeholder="Datum" required>
-                <input type="text" id="editFinanceNote" placeholder="Bemerkung" required>
-                <input type="number" id="editFinanceAmount" placeholder="Betrag" required>
-                <button type="submit">Speichern</button>
-            </form>
-            <button id="deleteFinanceButton" class="delete-button">Löschen</button>
-        </div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
@@ -204,20 +139,21 @@
     <script>
         // Firebase-Konfiguration
         const firebaseConfig = {
-          apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
-          authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
-          projectId: "mitgliederverwaltung-3458b",
-          storageBucket: "mitgliederverwaltung-3458b.appspot.com",
-          messagingSenderId: "916656812587",
-          appId: "1:916656812587:web:23b510f805c800f62af06e"
+            apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
+            authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
+            projectId: "mitgliederverwaltung-3458b",
+            storageBucket: "mitgliederverwaltung-3458b.appspot.com",
+            messagingSenderId: "916656812587",
+            appId: "1:916656812587:web:23b510f805c800f62af06e"
         };
 
         // Firebase initialisieren
+        console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const financeCollection = db.collection("finances");
 
-        // Neues Finanzdatensatz hinzufügen - Modal öffnen
+        // Neues Finanztransaktion hinzufügen - Modal öffnen
         const addFinanceModal = document.getElementById("addFinanceModal");
         const openAddFinanceModalButton = document.getElementById("openAddFinanceModalButton");
         const closeAddFinanceModal = document.getElementById("closeAddFinanceModal");
@@ -230,7 +166,7 @@
             addFinanceModal.style.display = "none";
         });
 
-        // Neues Finanzdatensatz hinzufügen
+        // Neue Finanztransaktion hinzufügen
         const addFinanceForm = document.getElementById("addFinanceForm");
         addFinanceForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -238,19 +174,24 @@
             const note = document.getElementById("financeNote").value;
             const amount = document.getElementById("financeAmount").value;
             try {
-                await financeCollection.add({ date, note, amount, processed: false });
+                console.log("Füge neue Finanztransaktion hinzu...");
+                await financeCollection.add({ date, note, amount });
+                console.log("Finanztransaktion erfolgreich hinzugefügt: ", { date, note, amount });
                 addFinanceForm.reset();
                 addFinanceModal.style.display = "none";
             } catch (error) {
-                console.error("Fehler beim Hinzufügen des Finanzdatensatzes: ", error);
+                console.error("Fehler beim Hinzufügen der Finanztransaktion: ", error);
             }
         });
 
-        // Finanzliste anzeigen
+        // Finanztransaktionen anzeigen
         const financesTable = document.getElementById("finances");
+        console.log("Höre auf Änderungen in der Finanz-Collection...");
         financeCollection.onSnapshot((snapshot) => {
+            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
-                document.getElementById("loadingFinanceMessage").textContent = "Keine Finanztransaktionen gefunden.";
+                console.log("Keine Finanzdaten in der Datenbank vorhanden.");
+                document.getElementById("loadingFinanceMessage").textContent = "Keine Finanzdaten gefunden.";
                 return;
             }
 
@@ -258,6 +199,8 @@
             document.getElementById("loadingFinanceMessage").style.display = "none";
             snapshot.forEach((doc) => {
                 const finance = doc.data();
+                console.log("Finanzdaten erhalten:", doc.id, finance);
+
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
@@ -273,63 +216,53 @@
                 amountTd.textContent = finance.amount;
                 tr.appendChild(amountTd);
 
-                const actionsTd = document.createElement("td");
-                const editButton = document.createElement("button");
-                editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditFinanceModal(doc.id, finance));
-                actionsTd.appendChild(editButton);
-                tr.appendChild(actionsTd);
-
                 financesTable.appendChild(tr);
             });
         }, (error) => {
             console.error("Fehler beim Abrufen der Finanztransaktionen: ", error);
-            document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
+            document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanzdaten.";
         });
 
-        // Bearbeiten-Modul öffnen
-        const editFinanceModal = document.getElementById("editFinanceModal");
-        const closeEditFinanceModal = document.getElementById("closeEditFinanceModal");
-        const editFinanceForm = document.getElementById("editFinanceForm");
-        const deleteFinanceButton = document.getElementById("deleteFinanceButton");
-        let currentEditFinanceId = null;
-
-        function openEditFinanceModal(id, finance) {
-            currentEditFinanceId = id;
-            document.getElementById("editFinanceDate").value = finance.date;
-            document.getElementById("editFinanceNote").value = finance.note;
-            document.getElementById("editFinanceAmount").value = finance.amount;
-            editFinanceModal.style.display = "block";
-        }
-
-        closeEditFinanceModal.addEventListener("click", () => {
-            editFinanceModal.style.display = "none";
-        });
-
-        // Finanzdatensatz bearbeiten
-        editFinanceForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const date = document.getElementById("editFinanceDate").value;
-            const note = document.getElementById("editFinanceNote").value;
-            const amount = document.getElementById("editFinanceAmount").value;
+        // Finanzdaten exportieren (Excel)
+        document.getElementById("exportFinanceButton").addEventListener("click", async () => {
             try {
-                await financeCollection.doc(currentEditFinanceId).update({ date, note, amount });
-                editFinanceModal.style.display = "none";
+                const snapshot = await financeCollection.get();
+                const finances = [];
+                snapshot.forEach((doc) => {
+                    finances.push(doc.data());
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(finances);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzen");
+                XLSX.writeFile(workbook, "finanzen.xlsx");
             } catch (error) {
-                console.error("Fehler beim Aktualisieren des Finanzdatensatzes: ", error);
+                console.error("Fehler beim Exportieren der Finanzdaten: ", error);
             }
         });
 
-        // Finanzdatensatz löschen
-        deleteFinanceButton.addEventListener("click", async () => {
-            if (currentEditFinanceId) {
-                try {
-                    await financeCollection.doc(currentEditFinanceId).delete();
-                    editFinanceModal.style.display = "none";
-                } catch (error) {
-                    console.error("Fehler beim Löschen des Finanzdatensatzes: ", error);
+        // Finanzdaten importieren (Excel)
+        document.getElementById("importFinanceFile").addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const finances = XLSX.utils.sheet_to_json(worksheet);
+
+                for (const finance of finances) {
+                    try {
+                        await financeCollection.add(finance);
+                    } catch (error) {
+                        console.error("Fehler beim Importieren der Finanzdaten: ", error);
+                    }
                 }
-            }
+            };
+            reader.readAsArrayBuffer(file);
         });
     </script>
 </body>
