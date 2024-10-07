@@ -251,4 +251,15 @@
             console.log("Snapshot erhalten", snapshot);
             membersTable.innerHTML = "";
             if (snapshot.empty) {
-                console.log("Keine
+                console.log("Keine Mitglieder in der Datenbank vorhanden.");
+                document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
+            } else {
+                snapshot.forEach((doc) => {
+                    const member = doc.data();
+                    console.log("Mitgliedsdokument:", doc.id, member);
+                    const tr = document.createElement("tr");
+                    tr.setAttribute("data-id", doc.id);
+
+                    const nameTd = document.createElement("td");
+                    nameTd.textContent = member.name || "(kein Name)";
+                   
