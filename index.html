@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Mitgliederverwaltung</title>
+    <link rel="stylesheet" href="styles.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -145,6 +146,10 @@
     </style>
 </head>
 <body>
+    <nav>
+        <a href="index.html">Mitgliederverwaltung</a> |
+        <a href="finanzen.html">Finanzverwaltung</a>
+    </nav>
     <h1>Moschee Drita - Mitgliederverwaltung</h1>
     
     <!-- Modal zum Hinzufügen eines Mitglieds -->
@@ -179,6 +184,7 @@
                     <th>Adresse</th>
                     <th>PLZ</th>
                     <th>Ort</th>
+                    <th>2024</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
@@ -192,6 +198,7 @@
             <span id="closeModal" class="close">&times;</span>
             <h2>Mitglied bearbeiten</h2>
             <form id="editMemberForm">
+                <input type="text" id="editPayment2024" placeholder="Betrag 2024">
                 <input type="text" id="editName" placeholder="Name" required>
                 <input type="email" id="editEmail" placeholder="Email">
                 <input type="text" id="editPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
@@ -258,10 +265,11 @@
             const address = document.getElementById("addAddress").value;
             const zip = document.getElementById("addZip").value;
             const city = document.getElementById("addCity").value;
+            const payment2024 = document.getElementById("editPayment2024").value;
             try {
                 console.log("Füge neues Mitglied hinzu...");
-                await membersCollection.add({ name, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city });
+                await membersCollection.add({ name, email, phone, address, zip, city, payment2024 });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city, payment2024 });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -286,40 +294,36 @@
                 const member = doc.data();
                 console.log("Mitgliedsdaten erhalten:", doc.id, member);
 
-                // Überprüfen, ob die Member-Daten korrekt sind und Standardwerte setzen, falls nötig
-                const name = member.name || "(kein Name)";
-                const email = member.email || "(keine Email)";
-                const phone = member.phone || "(keine Telefonnummer)";
-                const address = member.address || "(keine Adresse)";
-                const zip = member.zip || "(keine PLZ)";
-                const city = member.city || "(kein Ort)";
-
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
                 const nameTd = document.createElement("td");
-                nameTd.textContent = name;
+                nameTd.textContent = member.name;
                 tr.appendChild(nameTd);
 
                 const emailTd = document.createElement("td");
-                emailTd.textContent = email;
+                emailTd.textContent = member.email;
                 tr.appendChild(emailTd);
 
                 const phoneTd = document.createElement("td");
-                phoneTd.textContent = phone;
+                phoneTd.textContent = member.phone;
                 tr.appendChild(phoneTd);
 
                 const addressTd = document.createElement("td");
-                addressTd.textContent = address;
+                addressTd.textContent = member.address;
                 tr.appendChild(addressTd);
 
                 const zipTd = document.createElement("td");
-                zipTd.textContent = zip;
+                zipTd.textContent = member.zip;
                 tr.appendChild(zipTd);
 
                 const cityTd = document.createElement("td");
-                cityTd.textContent = city;
+                cityTd.textContent = member.city;
                 tr.appendChild(cityTd);
+
+                const payment2024Td = document.createElement("td");
+                payment2024Td.textContent = member.payment2024 || "0";
+                tr.appendChild(payment2024Td);
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
@@ -350,6 +354,7 @@
             document.getElementById("editAddress").value = member.address;
             document.getElementById("editZip").value = member.zip;
             document.getElementById("editCity").value = member.city;
+            document.getElementById("editPayment2024").value = member.payment2024 || "0";
             editMemberModal.style.display = "block";
         }
 
@@ -357,7 +362,7 @@
             editMemberModal.style.display = "none";
         });
 
-        // Mitglied bearbeiten speichern
+        // Mitglied bearbeiten
         editMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("editName").value;
@@ -366,10 +371,11 @@
             const address = document.getElementById("editAddress").value;
             const zip = document.getElementById("editZip").value;
             const city = document.getElementById("editCity").value;
+            const payment2024 = document.getElementById("editPayment2024").value;
             try {
                 console.log("Aktualisiere Mitglied...");
-                await membersCollection.doc(currentEditId).update({ name, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich aktualisiert: ", { name, email, phone, address, zip, city });
+                await membersCollection.doc(currentEditId).update({ name, email, phone, address, zip, city, payment2024 });
+                console.log("Mitglied erfolgreich aktualisiert: ", { name, email, phone, address, zip, city, payment2024 });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
