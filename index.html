@@ -218,6 +218,7 @@
         };
 
         // Firebase initialisieren
+        console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
@@ -248,6 +249,7 @@
             const zip = document.getElementById("addZip").value;
             const city = document.getElementById("addCity").value;
             try {
+                console.log("Füge neues Mitglied hinzu...");
                 await membersCollection.add({ name, email, phone, address, zip, city });
                 console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city });
                 addMemberForm.reset();
@@ -259,6 +261,7 @@
 
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
+        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
         membersCollection.onSnapshot((snapshot) => {
             console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
@@ -271,7 +274,7 @@
             document.getElementById("loadingMessage").style.display = "none";
             snapshot.forEach((doc) => {
                 const member = doc.data();
-                console.log("Mitgliedsdaten:", doc.id, member);
+                console.log("Mitgliedsdaten erhalten:", doc.id, member);
 
                 // Überprüfen, ob die Member-Daten korrekt sind und Standardwerte setzen, falls nötig
                 const name = member.name || "(kein Name)";
@@ -290,4 +293,22 @@
 
                 const emailTd = document.createElement("td");
                 emailTd.textContent = email;
-                tr
+                tr.appendChild(emailTd);
+
+                const phoneTd = document.createElement("td");
+                phoneTd.textContent = phone;
+                tr.appendChild(phoneTd);
+
+                const addressTd = document.createElement("td");
+                addressTd.textContent = address;
+                tr.appendChild(addressTd);
+
+                const zipTd = document.createElement("td");
+                zipTd.textContent = zip;
+                tr.appendChild(zipTd);
+
+                const cityTd = document.createElement("td");
+                cityTd.textContent = city;
+                tr.appendChild(cityTd);
+
+                const actionsTd = document.createElement("td");
