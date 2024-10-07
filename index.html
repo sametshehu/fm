@@ -273,15 +273,21 @@
                 const member = doc.data();
                 console.log("Mitgliedsdaten:", doc.id, member);
 
-                // Überprüfen, ob die Member-Daten korrekt sind
-                if (!member || !member.name) {
-                    console.warn("Mitgliedsdaten fehlen oder sind unvollständig für Dokument: ", doc.id);
-                    return;
-                }
+                // Überprüfen, ob die Member-Daten korrekt sind und Standardwerte setzen, falls nötig
+                const name = member.name || "(kein Name)";
+                const email = member.email || "(keine Email)";
+                const phone = member.phone || "(keine Telefonnummer)";
+                const address = member.address || "(keine Adresse)";
+                const zip = member.zip || "(keine PLZ)";
+                const city = member.city || "(kein Ort)";
 
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
                 const nameTd = document.createElement("td");
-                nameTd.textContent = member.name || "(kein Name)";
+                nameTd.textContent = name;
                 tr.appendChild(nameTd);
+
+                const emailTd = document.createElement("td");
+                emailTd.textContent = email;
+                tr
