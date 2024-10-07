@@ -277,7 +277,7 @@
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
         console.log("Höre auf Änderungen in der Mitglieder-Collection...");
-        membersCollection.onSnapshot(async (snapshot) => {
+        membersCollection.onSnapshot((snapshot) => {
             console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
                 console.log("Keine Mitglieder in der Datenbank vorhanden.");
@@ -323,7 +323,7 @@
                 tr.appendChild(cityTd);
 
                 const years = [2022, 2023, 2024, 2025, 2026];
-                years.forEach((year) => {
+                for (const year of years) {
                     const paymentTd = document.createElement("td");
                     let totalPayment = 0;
                     const financeQuery = await financeCollection.get();
@@ -342,7 +342,7 @@
 
                     paymentTd.textContent = totalPayment;
                     tr.appendChild(paymentTd);
-                });
+                }
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
