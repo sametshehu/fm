@@ -159,7 +159,12 @@
             <h2>Neue Finanztransaktion hinzufügen</h2>
             <form id="addFinanceForm">
                 <input type="date" id="financeDate" placeholder="Datum" required>
-                <input type="text" id="financeCategory" placeholder="Kategorie" required>
+                <select id="financeCategory" required>
+                    <option value="">Kategorie auswählen</option>
+                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
+                    <option value="Lohn">Lohn</option>
+                    <option value="Rechnung">Rechnung</option>
+                </select>
                 <input type="text" id="financeNote" placeholder="Bemerkung" required>
                 <input type="number" id="financeAmount" placeholder="Betrag" required>
                 <button type="submit">Hinzufügen</button>
@@ -196,7 +201,12 @@
             <h2>Finanztransaktion bearbeiten</h2>
             <form id="editFinanceForm">
                 <input type="date" id="editFinanceDate" placeholder="Datum" required>
-                <input type="text" id="editFinanceCategory" placeholder="Kategorie" required>
+                <select id="editFinanceCategory" required>
+                    <option value="">Kategorie auswählen</option>
+                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
+                    <option value="Lohn">Lohn</option>
+                    <option value="Rechnung">Rechnung</option>
+                </select>
                 <input type="text" id="editFinanceNote" placeholder="Bemerkung" required>
                 <input type="number" id="editFinanceAmount" placeholder="Betrag" required>
                 <button type="submit">Speichern</button>
