@@ -143,6 +143,23 @@
             font-size: 18px;
             margin: 20px 0;
         }
+
+        .column-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .rename-button, .delete-column-button {
+            padding: 5px 10px;
+            background-color: #ffc107;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .rename-button:hover, .delete-column-button:hover {
+            background-color: #e0a800;
+        }
     </style>
 </head>
 <body>
@@ -260,6 +277,51 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const financeCollection = db.collection("finances");
+        const settingsCollection = db.collection("settings");
+
+        // Initiale Spalten laden
+        let columns = ["Datum", "Kategorie", "Bemerkung", "Betrag", "Mitgl. Beitrag Jahr", "Typ", "Konto", "Aktionen"];
+
+        async function loadColumns() {
+            const settingsDoc = await settingsCollection.doc("financeColumns").get();
+            if (settingsDoc.exists) {
+                columns = settingsDoc.data().columns;
+            }
+            renderTableHeader();
+        }
+
+        function renderTableHeader() {
+            const financeTableHeader = document.getElementById("financeTableHeader");
+            financeTableHeader.innerHTML = "";
+            columns.forEach((column, index) => {
+                const th = document.createElement("th");
+                th.textContent = column;
+
+                if (column !== "Aktionen") {
+                    const columnActions = document.createElement("div");
+                    columnActions.classList.add("column-actions");
+
+                    const renameButton = document.createElement("button");
+                    renameButton.textContent = "Umbenennen";
+                    renameButton.classList.add("rename-button");
+                    renameButton.addEventListener("click", () => renameColumn(index));
+                    columnActions.appendChild(renameButton);
+
+                    const deleteButton = document.createElement("button");
+                    deleteButton.textContent = "Löschen";
+                    deleteButton.classList.add("delete-column-button");
+                    deleteButton.addEventListener("click", () => deleteColumn(index));
+                    columnActions.appendChild(deleteButton);
+
+                    th.appendChild(columnActions);
+                }
+                financeTableHeader.appendChild(th);
+            });
+        }
+
+        async function saveColumns() {
+            await settingsCollection.doc("financeColumns").set({ columns });
+        }
 
         // Neues Finanzdatensatz hinzufügen - Modal öffnen
         const addFinanceModal = document.getElementById("addFinanceModal");
@@ -274,25 +336,33 @@
             addFinanceModal.style.display = "none";
         });
 
-        // Neues Finanzdatensatz hinzufügen
-        const addFinanceForm = document.getElementById("addFinanceForm");
-        addFinanceForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const date = document.getElementById("financeDate").value;
-            const category = document.getElementById("financeCategory").value;
-            const note = document.getElementById("financeNote").value;
-            const amount = parseFloat(document.getElementById("financeAmount").value);
-            const yearlyFee = parseFloat(document.getElementById("financeYearlyFee").value);
-            const type = document.getElementById("financeType").value;
-            const account = document.getElementById("financeAccount").value;
-            try {
-                await financeCollection.add({ date, category, note, amount, yearlyFee, type, account });
-                addFinanceForm.reset();
-                addFinanceModal.style.display = "none";
-            } catch (error) {
-                console.error("Fehler beim Hinzufügen des Finanzdatensatzes: ", error);
+        // Neue Spalte hinzufügen
+        const addColumnButton = document.getElementById("addColumnButton");
+        addColumnButton.addEventListener("click", async () => {
+            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
+            if (newColumnName) {
+                columns.splice(columns.length - 1, 0, newColumnName); // Füge die neue Spalte vor der Aktionen-Spalte hinzu
+                await saveColumns();
+                renderTableHeader();
             }
         });
+
+        async function renameColumn(index) {
+            const newColumnName = prompt("Bitte geben Sie den neuen Namen für die Spalte ein:", columns[index]);
+            if (newColumnName) {
+                columns[index] = newColumnName;
+                await saveColumns();
+                renderTableHeader();
+            }
+        }
+
+        async function deleteColumn(index) {
+            if (confirm(`Möchten Sie die Spalte "${columns[index]}" wirklich löschen?`)) {
+                columns.splice(index, 1);
+                await saveColumns();
+                renderTableHeader();
+            }
+        }
 
         // Finanzliste anzeigen
         const financesTable = document.getElementById("finances");
@@ -309,40 +379,15 @@
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
-                const dateTd = document.createElement("td");
-                dateTd.textContent = finance.date;
-                tr.appendChild(dateTd);
-
-                const categoryTd = document.createElement("td");
-                categoryTd.textContent = finance.category;
-                tr.appendChild(categoryTd);
-
-                const noteTd = document.createElement("td");
-                noteTd.textContent = finance.note;
-                tr.appendChild(noteTd);
-
-                const amountTd = document.createElement("td");
-                amountTd.textContent = finance.amount;
-                tr.appendChild(amountTd);
-
-                const yearlyFeeTd = document.createElement("td");
-                yearlyFeeTd.textContent = finance.yearlyFee;
-                tr.appendChild(yearlyFeeTd);
-
-                const typeTd = document.createElement("td");
-                typeTd.textContent = finance.type;
-                tr.appendChild(typeTd);
-
-                const accountTd = document.createElement("td");
-                accountTd.textContent = finance.account;
-                tr.appendChild(accountTd);
-
-                const actionsTd = document.createElement("td");
-                const editButton = document.createElement("button");
-                editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditFinanceModal(doc.id, finance));
-                actionsTd.appendChild(editButton);
-                tr.appendChild(actionsTd);
+                columns.forEach((column) => {
+                    const td = document.createElement("td");
+                    if (finance[column.toLowerCase()]) {
+                        td.textContent = finance[column.toLowerCase()];
+                    } else {
+                        td.textContent = "-";
+                    }
+                    tr.appendChild(td);
+                });
 
                 financesTable.appendChild(tr);
             });
@@ -351,129 +396,7 @@
             document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
         });
 
-        // Neue Spalte hinzufügen
-        const addColumnButton = document.getElementById("addColumnButton");
-        addColumnButton.addEventListener("click", () => {
-            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
-            if (newColumnName) {
-                // Füge die neue Spalte zur Tabelle hinzu
-                const financeTableHeader = document.getElementById("financeTableHeader");
-                const newTh = document.createElement("th");
-                newTh.textContent = newColumnName;
-                financeTableHeader.insertBefore(newTh, financeTableHeader.lastElementChild);
-
-                // Füge die neue Spalte zu jedem Tabellenzeile hinzu
-                const financeRows = document.querySelectorAll("#finances tr");
-                financeRows.forEach((row) => {
-                    const newTd = document.createElement("td");
-                    newTd.textContent = "-"; // Platzhalterwert
-                    row.insertBefore(newTd, row.lastElementChild);
-                });
-            }
-        });
-
-        // Bearbeiten-Modul öffnen
-        const editFinanceModal = document.getElementById("editFinanceModal");
-        const closeEditFinanceModal = document.getElementById("closeEditFinanceModal");
-        const editFinanceForm = document.getElementById("editFinanceForm");
-        const deleteFinanceButton = document.getElementById("deleteFinanceButton");
-        let currentEditFinanceId = null;
-
-        function openEditFinanceModal(id, finance) {
-            currentEditFinanceId = id;
-            document.getElementById("editFinanceDate").value = finance.date;
-            document.getElementById("editFinanceCategory").value = finance.category;
-            document.getElementById("editFinanceNote").value = finance.note;
-            document.getElementById("editFinanceAmount").value = finance.amount;
-            document.getElementById("editFinanceYearlyFee").value = finance.yearlyFee;
-            document.getElementById("editFinanceType").value = finance.type;
-            document.getElementById("editFinanceAccount").value = finance.account;
-            editFinanceModal.style.display = "block";
-        }
-
-        closeEditFinanceModal.addEventListener("click", () => {
-            editFinanceModal.style.display = "none";
-        });
-
-        // Finanzdatensatz bearbeiten
-        editFinanceForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const date = document.getElementById("editFinanceDate").value;
-            const category = document.getElementById("editFinanceCategory").value;
-            const note = document.getElementById("editFinanceNote").value;
-            const amount = parseFloat(document.getElementById("editFinanceAmount").value);
-            const yearlyFee = parseFloat(document.getElementById("editFinanceYearlyFee").value);
-            const type = document.getElementById("editFinanceType").value;
-            const account = document.getElementById("editFinanceAccount").value;
-            try {
-                await financeCollection.doc(currentEditFinanceId).update({ date, category, note, amount, yearlyFee, type, account });
-                editFinanceModal.style.display = "none";
-            } catch (error) {
-                console.error("Fehler beim Aktualisieren des Finanzdatensatzes: ", error);
-            }
-        });
-
-        // Finanzdatensatz löschen
-        deleteFinanceButton.addEventListener("click", async () => {
-            if (currentEditFinanceId) {
-                try {
-                    await financeCollection.doc(currentEditFinanceId).delete();
-                    editFinanceModal.style.display = "none";
-                } catch (error) {
-                    console.error("Fehler beim Löschen des Finanzdatensatzes: ", error);
-                }
-            }
-        });
-
-        // Exportieren der Finanzdaten
-        document.getElementById("exportFinanceButton").addEventListener("click", async () => {
-            try {
-                const snapshot = await financeCollection.get();
-                if (snapshot.empty) {
-                    alert("Keine Finanzdaten zum Exportieren vorhanden.");
-                    return;
-                }
-
-                const financeData = [];
-                snapshot.forEach((doc) => {
-                    financeData.push(doc.data());
-                });
-
-                const worksheet = XLSX.utils.json_to_sheet(financeData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzen");
-                XLSX.writeFile(workbook, "Finanzen.xlsx");
-            } catch (error) {
-                console.error("Fehler beim Exportieren der Finanzdaten: ", error);
-            }
-        });
-
-        // Importieren der Finanzdaten
-        document.getElementById("importFinanceFile").addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (!file) {
-                return;
-            }
-
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-                const data = new Uint8Array(e.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[sheetName];
-                const financeData = XLSX.utils.sheet_to_json(worksheet);
-
-                try {
-                    for (const finance of financeData) {
-                        await financeCollection.add(finance);
-                    }
-                    alert("Finanzdaten erfolgreich importiert.");
-                } catch (error) {
-                    console.error("Fehler beim Importieren der Finanzdaten: ", error);
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
+        loadColumns();
     </script>
 </body>
 </html>
