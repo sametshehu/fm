@@ -344,9 +344,9 @@
             console.log("Abrufen der Finanzdaten...");
             snapshot.forEach(async (doc) => {
                 const finance = doc.data();
-                const { note, amount } = finance;
+                const { note, amount, processed } = finance;
 
-                if (note) {
+                if (!processed && note) {
                     // Suche nach einem Mitglied mit Namen im Feld "Bemerkung"
                     const memberQuery = await membersCollection.where("name", "==", note).get();
                     memberQuery.forEach(async (memberDoc) => {
@@ -357,6 +357,10 @@
                         await membersCollection.doc(memberDoc.id).update({ payment2024: updatedPayment });
                         console.log(`Beitrag für Mitglied ${memberData.name} aktualisiert: ${updatedPayment}`);
                     });
+
+                    // Markiere die Finanztransaktion als verarbeitet
+                    await financeCollection.doc(doc.id).update({ processed: true });
+                    console.log(`Finanztransaktion ${doc.id} als verarbeitet markiert.`);
                 }
             });
         });
