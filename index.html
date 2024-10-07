@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Mitgliederverwaltung</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -169,9 +170,8 @@
     </div>
 
     <button id="openAddModalButton">Neues Mitglied hinzufügen</button>
-    <button id="exportMembersButton">Mitglieder als Excel exportieren</button>
-    <input type="file" id="importMembersInput" accept=".xlsx" style="display: none;" />
-    <button id="importMembersButton">Mitglieder aus Excel importieren</button>
+    <button id="exportButton">Mitglieder exportieren (Excel)</button>
+    <input type="file" id="importFile" accept=".xlsx, .xls" />
 
     <!-- Mitgliederliste -->
     <div class="members-list">
@@ -214,7 +214,6 @@
 
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script>
         // Firebase-Konfiguration
         const firebaseConfig = {
@@ -227,9 +226,11 @@
         };
 
         // Firebase initialisieren
+        console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const membersCollection = db.collection("members");
+        const financeCollection = db.collection("finances");
 
         // Neues Mitglied hinzufügen - Modal öffnen
         const addMemberModal = document.getElementById("addMemberModal");
@@ -255,7 +256,9 @@
             const zip = document.getElementById("addZip").value;
             const city = document.getElementById("addCity").value;
             try {
+                console.log("Füge neues Mitglied hinzu...");
                 await membersCollection.add({ name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -265,8 +268,11 @@
 
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
+        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
         membersCollection.onSnapshot(async (snapshot) => {
+            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
+                console.log("Keine Mitglieder in der Datenbank vorhanden.");
                 document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
                 return;
             }
@@ -275,6 +281,8 @@
             document.getElementById("loadingMessage").style.display = "none";
             snapshot.forEach(async (doc) => {
                 const member = doc.data();
+                console.log("Mitgliedsdaten erhalten:", doc.id, member);
+
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
@@ -302,6 +310,16 @@
                 cityTd.textContent = member.city;
                 tr.appendChild(cityTd);
 
+                // Betrag für 2024 berechnen
+                const payment2024Td = document.createElement("td");
+                let totalPayment2024 = 0;
+                const financeQuery = await financeCollection.where("note", "==", member.name).get();
+                financeQuery.forEach((financeDoc) => {
+                    totalPayment2024 += parseFloat(financeDoc.data().amount);
+                });
+                payment2024Td.textContent = totalPayment2024;
+                tr.appendChild(payment2024Td);
+
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
                 editButton.textContent = "Bearbeiten";
@@ -311,37 +329,9 @@
 
                 membersTable.appendChild(tr);
             });
-        });
-
-        // Exportiere Mitglieder als Excel
-        document.getElementById("exportMembersButton").addEventListener("click", async () => {
-            const membersSnapshot = await membersCollection.get();
-            const membersData = membersSnapshot.docs.map((doc) => doc.data());
-            const worksheet = XLSX.utils.json_to_sheet(membersData);
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
-            XLSX.writeFile(workbook, "Mitglieder.xlsx");
-        });
-
-        // Importiere Mitglieder aus Excel
-        document.getElementById("importMembersButton").addEventListener("click", () => {
-            document.getElementById("importMembersInput").click();
-        });
-
-        document.getElementById("importMembersInput").addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const sheetName = workbook.SheetNames[0];
-                const sheet = workbook.Sheets[sheetName];
-                const members = XLSX.utils.sheet_to_json(sheet);
-                for (const member of members) {
-                    await membersCollection.add(member);
-                }
-            };
-            reader.readAsArrayBuffer(file);
+        }, (error) => {
+            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
+            document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
         });
 
         // Bearbeiten-Modul öffnen
@@ -393,6 +383,48 @@
                     console.error("Fehler beim Löschen des Mitglieds: ", error);
                 }
             }
+        });
+
+        // Mitglieder exportieren (Excel)
+        document.getElementById("exportButton").addEventListener("click", async () => {
+            try {
+                const snapshot = await membersCollection.get();
+                const members = [];
+                snapshot.forEach((doc) => {
+                    members.push(doc.data());
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(members);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
+                XLSX.writeFile(workbook, "mitglieder.xlsx");
+            } catch (error) {
+                console.error("Fehler beim Exportieren der Mitglieder: ", error);
+            }
+        });
+
+        // Mitglieder importieren (Excel)
+        document.getElementById("importFile").addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const members = XLSX.utils.sheet_to_json(worksheet);
+
+                for (const member of members) {
+                    try {
+                        await membersCollection.add(member);
+                    } catch (error) {
+                        console.error("Fehler beim Importieren des Mitglieds: ", error);
+                    }
+                }
+            };
+            reader.readAsArrayBuffer(file);
         });
     </script>
 </body>
