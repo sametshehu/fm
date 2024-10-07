@@ -239,11 +239,11 @@
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const name = document.getElementById("addName").value;
-            const email = document.getElementById("addEmail").value;
-            const phone = document.getElementById("addPhone").value;
-            const address = document.getElementById("addAddress").value;
-            const zip = document.getElementById("addZip").value;
-            const city = document.getElementById("addCity").value;
+            const email = document.getElementById("addEmail").value || "";
+            const phone = document.getElementById("addPhone").value || "";
+            const address = document.getElementById("addAddress").value || "";
+            const zip = document.getElementById("addZip").value || "";
+            const city = document.getElementById("addCity").value || "";
             try {
                 console.log("Füge neues Mitglied hinzu...");
                 await membersCollection.add({ name, email, phone, address, zip, city });
@@ -315,14 +315,26 @@
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     const members = XLSX.utils.sheet_to_json(firstSheet);
                     for (const member of members) {
-                        await membersCollection.add({
-                            name: member.Name,
-                            email: member.Email,
-                            phone: member.Telefonnummer,
-                            address: member.Adresse,
-                            zip: member.PLZ,
-                            city: member.Ort
-                        });
+                        const name = member.Name || "";
+                        const email = member.Email || "";
+                        const phone = member.Telefonnummer || "";
+                        const address = member.Adresse || "";
+                        const zip = member.PLZ || "";
+                        const city = member.Ort || "";
+
+                        // Überprüfe, ob Name vorhanden ist, da er erforderlich ist
+                        if (name) {
+                            await membersCollection.add({
+                                name,
+                                email,
+                                phone,
+                                address,
+                                zip,
+                                city
+                            });
+                        } else {
+                            console.warn("Ein Mitglied ohne Namen wurde übersprungen");
+                        }
                     }
                     alert("Import erfolgreich");
                 };
