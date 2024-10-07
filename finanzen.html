@@ -186,6 +186,7 @@
 
     <button id="openAddFinanceModalButton">Neue Finanztransaktion hinzufügen</button>
     <button id="exportFinanceButton">Finanzen exportieren (Excel)</button>
+    <button id="addColumnButton">Neue Spalte hinzufügen</button>
     <input type="file" id="importFinanceFile" accept=".xlsx, .xls" />
 
     <!-- Finanzliste -->
@@ -194,7 +195,7 @@
         <div class="loading" id="loadingFinanceMessage">Lade Finanztransaktionen...</div>
         <table id="financesTable">
             <thead>
-                <tr>
+                <tr id="financeTableHeader">
                     <th>Datum</th>
                     <th>Kategorie</th>
                     <th>Bemerkung</th>
@@ -348,6 +349,27 @@
         }, (error) => {
             console.error("Fehler beim Abrufen der Finanztransaktionen: ", error);
             document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
+        });
+
+        // Neue Spalte hinzufügen
+        const addColumnButton = document.getElementById("addColumnButton");
+        addColumnButton.addEventListener("click", () => {
+            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
+            if (newColumnName) {
+                // Füge die neue Spalte zur Tabelle hinzu
+                const financeTableHeader = document.getElementById("financeTableHeader");
+                const newTh = document.createElement("th");
+                newTh.textContent = newColumnName;
+                financeTableHeader.insertBefore(newTh, financeTableHeader.lastElementChild);
+
+                // Füge die neue Spalte zu jedem Tabellenzeile hinzu
+                const financeRows = document.querySelectorAll("#finances tr");
+                financeRows.forEach((row) => {
+                    const newTd = document.createElement("td");
+                    newTd.textContent = "-"; // Platzhalterwert
+                    row.insertBefore(newTd, row.lastElementChild);
+                });
+            }
         });
 
         // Bearbeiten-Modul öffnen
