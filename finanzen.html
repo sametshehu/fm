@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Finanzverwaltung</title>
+    <!-- Einbinden der notwendigen Bibliotheken -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <style>
+        /* Dein vorhandenes CSS */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -73,21 +75,22 @@
         .modal {
             display: none;
             position: fixed;
-            z-index: 1;
+            z-index: 9999;
             left: 0;
             top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5);
         }
 
         .modal-content {
             background-color: #fff;
-            margin: 10% auto;
+            margin: 5% auto;
             padding: 20px;
             border: 1px solid #888;
             width: 90%;
-            max-width: 500px;
+            max-width: 600px;
             border-radius: 8px;
         }
 
@@ -121,11 +124,11 @@
             background-color: #c82333;
         }
 
-        #openAddFinanceModalButton {
+        #openAddFinanceModalButton, #exportFinanceButton, #manageColumnsButton {
             width: calc(100% - 40px);
             max-width: 500px;
             padding: 10px;
-            margin: 20px auto;
+            margin: 10px auto;
             display: block;
             background-color: #007bff;
             color: white;
@@ -134,8 +137,14 @@
             cursor: pointer;
         }
 
-        #openAddFinanceModalButton:hover {
+        #openAddFinanceModalButton:hover, #exportFinanceButton:hover, #manageColumnsButton:hover {
             background-color: #0056b3;
+        }
+
+        #importFinanceFile {
+            display: block;
+            margin: 10px auto;
+            max-width: 500px;
         }
 
         .loading {
@@ -144,21 +153,18 @@
             margin: 20px 0;
         }
 
-        .column-actions {
-            display: flex;
-            gap: 10px;
+        /* Spaltenverwaltung */
+        #columnsList {
+            list-style-type: none;
+            padding: 0;
         }
 
-        .rename-button, .delete-column-button {
-            padding: 5px 10px;
-            background-color: #ffc107;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
+        #columnsList li {
+            margin: 10px 0;
         }
 
-        .rename-button:hover, .delete-column-button:hover {
-            background-color: #e0a800;
+        #columnsList button {
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -174,36 +180,14 @@
         <div class="modal-content">
             <span id="closeAddFinanceModal" class="close">&times;</span>
             <h2>Neue Finanztransaktion hinzufügen</h2>
-            <form id="addFinanceForm">
-                <input type="date" id="financeDate" placeholder="Datum" required>
-                <select id="financeCategory" required>
-                    <option value="">Kategorie auswählen</option>
-                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
-                    <option value="Lohn">Lohn</option>
-                    <option value="Rechnung">Rechnung</option>
-                </select>
-                <input type="text" id="financeNote" placeholder="Bemerkung" required>
-                <input type="number" id="financeAmount" placeholder="Betrag" required>
-                <input type="number" id="financeYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
-                <select id="financeType" required>
-                    <option value="">Ausgaben/Einnahmen auswählen</option>
-                    <option value="Ausgaben">Ausgaben</option>
-                    <option value="Einnahmen">Einnahmen</option>
-                </select>
-                <select id="financeAccount" required>
-                    <option value="">Konto auswählen</option>
-                    <option value="Konto 05">Konto 05</option>
-                    <option value="Konto 03">Konto 03</option>
-                    <option value="Bar">Bar</option>
-                </select>
-                <button type="submit">Hinzufügen</button>
-            </form>
+            <form id="addFinanceForm"></form>
         </div>
     </div>
 
+    <!-- Buttons -->
     <button id="openAddFinanceModalButton">Neue Finanztransaktion hinzufügen</button>
     <button id="exportFinanceButton">Finanzen exportieren (Excel)</button>
-    <button id="addColumnButton">Neue Spalte hinzufügen</button>
+    <button id="manageColumnsButton">Spalten verwalten</button>
     <input type="file" id="importFinanceFile" accept=".xlsx, .xls" />
 
     <!-- Finanzliste -->
@@ -212,16 +196,7 @@
         <div class="loading" id="loadingFinanceMessage">Lade Finanztransaktionen...</div>
         <table id="financesTable">
             <thead>
-                <tr id="financeTableHeader">
-                    <th>Datum</th>
-                    <th>Kategorie</th>
-                    <th>Bemerkung</th>
-                    <th>Betrag</th>
-                    <th>Mitgl. Beitrag Jahr</th>
-                    <th>Typ</th>
-                    <th>Konto</th>
-                    <th>Aktionen</th>
-                </tr>
+                <tr id="financeTableHeader"></tr>
             </thead>
             <tbody id="finances"></tbody>
         </table>
@@ -232,171 +207,443 @@
         <div class="modal-content">
             <span id="closeEditFinanceModal" class="close">&times;</span>
             <h2>Finanztransaktion bearbeiten</h2>
-            <form id="editFinanceForm">
-                <input type="date" id="editFinanceDate" placeholder="Datum" required>
-                <select id="editFinanceCategory" required>
-                    <option value="">Kategorie auswählen</option>
-                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
-                    <option value="Lohn">Lohn</option>
-                    <option value="Rechnung">Rechnung</option>
-                </select>
-                <input type="text" id="editFinanceNote" placeholder="Bemerkung" required>
-                <input type="number" id="editFinanceAmount" placeholder="Betrag" required>
-                <input type="number" id="editFinanceYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
-                <select id="editFinanceType" required>
-                    <option value="">Ausgaben/Einnahmen auswählen</option>
-                    <option value="Ausgaben">Ausgaben</option>
-                    <option value="Einnahmen">Einnahmen</option>
-                </select>
-                <select id="editFinanceAccount" required>
-                    <option value="">Konto auswählen</option>
-                    <option value="Konto 05">Konto 05</option>
-                    <option value="Konto 03">Konto 03</option>
-                    <option value="Bar">Bar</option>
-                </select>
-                <button type="submit">Speichern</button>
-            </form>
+            <form id="editFinanceForm"></form>
             <button id="deleteFinanceButton" class="delete-button">Löschen</button>
         </div>
     </div>
 
+    <!-- Modal zur Spaltenverwaltung -->
+    <div id="manageColumnsModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <span id="closeManageColumnsModal" class="close">&times;</span>
+            <h2>Spalten verwalten</h2>
+            <ul id="columnsList"></ul>
+            <button id="addNewColumnButton">Neue Spalte hinzufügen</button>
+        </div>
+    </div>
+
+    <!-- Firebase und Scripts -->
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <script>
         // Firebase-Konfiguration
         const firebaseConfig = {
-          apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
-          authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
-          projectId: "mitgliederverwaltung-3458b",
-          storageBucket: "mitgliederverwaltung-3458b.appspot.com",
-          messagingSenderId: "916656812587",
-          appId: "1:916656812587:web:23b510f805c800f62af06e"
+            apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
+            authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
+            projectId: "mitgliederverwaltung-3458b",
+            storageBucket: "mitgliederverwaltung-3458b.appspot.com",
+            messagingSenderId: "916656812587",
+            appId: "1:916656812587:web:23b510f805c800f62af06e"
         };
 
         // Firebase initialisieren
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const financeCollection = db.collection("finances");
-        const settingsCollection = db.collection("settings");
+        const columnsCollection = db.collection("financeColumns");
 
-        // Initiale Spalten laden
-        let columns = ["Datum", "Kategorie", "Bemerkung", "Betrag", "Mitgl. Beitrag Jahr", "Typ", "Konto", "Aktionen"];
+        // Variablen für die Spalten und Finanzdaten
+        let financeColumns = [];
+        let currentEditFinanceId = null;
 
-        async function loadColumns() {
-            const settingsDoc = await settingsCollection.doc("financeColumns").get();
-            if (settingsDoc.exists) {
-                columns = settingsDoc.data().columns;
-            }
-            renderTableHeader();
+        // Elemente aus dem DOM
+        const financesTable = document.getElementById("finances");
+        const financeTableHeader = document.getElementById("financeTableHeader");
+
+        // Funktionen zum Rendern des Tabellenkopfs und der Formulare
+        function renderTableHeader() {
+            financeTableHeader.innerHTML = "";
+
+            // Standardspalten
+            const defaultColumns = [
+                { name: "Datum", field: "date" },
+                { name: "Kategorie", field: "category" },
+                { name: "Bemerkung", field: "note" },
+                { name: "Betrag", field: "amount" },
+                { name: "Mitgl. Beitrag Jahr", field: "yearlyFee" },
+                { name: "Typ", field: "type" },
+                { name: "Konto", field: "account" }
+            ];
+
+            defaultColumns.forEach((col) => {
+                const th = document.createElement("th");
+                th.textContent = col.name;
+                financeTableHeader.appendChild(th);
+            });
+
+            // Dynamische Spalten
+            financeColumns.forEach((col) => {
+                const th = document.createElement("th");
+                th.textContent = col.name;
+                financeTableHeader.appendChild(th);
+            });
+
+            // Aktionen
+            const actionsTh = document.createElement("th");
+            actionsTh.textContent = "Aktionen";
+            financeTableHeader.appendChild(actionsTh);
         }
 
-        function renderTableHeader() {
-            const financeTableHeader = document.getElementById("financeTableHeader");
-            financeTableHeader.innerHTML = "";
-            columns.forEach((column, index) => {
-                const th = document.createElement("th");
-                th.textContent = column;
+        function renderAddFinanceForm() {
+            const addFinanceForm = document.getElementById("addFinanceForm");
+            addFinanceForm.innerHTML = "";
 
-                if (column !== "Aktionen") {
-                    const columnActions = document.createElement("div");
-                    columnActions.classList.add("column-actions");
+            // Standardfelder
+            addFinanceForm.appendChild(createInputElement("date", "financeDate", "Datum"));
+            addFinanceForm.appendChild(createSelectElement("financeCategory", "Kategorie auswählen", ["Mitgliederbeitrag", "Lohn", "Rechnung"]));
+            addFinanceForm.appendChild(createInputElement("text", "financeNote", "Bemerkung"));
+            addFinanceForm.appendChild(createInputElement("number", "financeAmount", "Betrag"));
+            addFinanceForm.appendChild(createInputElement("number", "financeYearlyFee", "Mitgliedsbeitrag für das Jahr"));
+            addFinanceForm.appendChild(createSelectElement("financeType", "Ausgaben/Einnahmen auswählen", ["Ausgaben", "Einnahmen"]));
+            addFinanceForm.appendChild(createSelectElement("financeAccount", "Konto auswählen", ["Konto 05", "Konto 03", "Bar"]));
 
-                    const renameButton = document.createElement("button");
-                    renameButton.textContent = "Umbenennen";
-                    renameButton.classList.add("rename-button");
-                    renameButton.addEventListener("click", () => renameColumn(index));
-                    columnActions.appendChild(renameButton);
+            // Dynamische Felder
+            financeColumns.forEach((col) => {
+                addFinanceForm.appendChild(createInputElement("text", `finance_${col.name}`, col.name));
+            });
 
-                    const deleteButton = document.createElement("button");
-                    deleteButton.textContent = "Löschen";
-                    deleteButton.classList.add("delete-column-button");
-                    deleteButton.addEventListener("click", () => deleteColumn(index));
-                    columnActions.appendChild(deleteButton);
+            const submitButton = document.createElement("button");
+            submitButton.type = "submit";
+            submitButton.textContent = "Hinzufügen";
+            addFinanceForm.appendChild(submitButton);
+        }
 
-                    th.appendChild(columnActions);
+        function renderEditFinanceForm(finance) {
+            const editFinanceForm = document.getElementById("editFinanceForm");
+            editFinanceForm.innerHTML = "";
+
+            // Standardfelder
+            editFinanceForm.appendChild(createInputElement("date", "editFinanceDate", "Datum", finance.date));
+            editFinanceForm.appendChild(createSelectElement("editFinanceCategory", "Kategorie auswählen", ["Mitgliederbeitrag", "Lohn", "Rechnung"], finance.category));
+            editFinanceForm.appendChild(createInputElement("text", "editFinanceNote", "Bemerkung", finance.note));
+            editFinanceForm.appendChild(createInputElement("number", "editFinanceAmount", "Betrag", finance.amount));
+            editFinanceForm.appendChild(createInputElement("number", "editFinanceYearlyFee", "Mitgliedsbeitrag für das Jahr", finance.yearlyFee));
+            editFinanceForm.appendChild(createSelectElement("editFinanceType", "Ausgaben/Einnahmen auswählen", ["Ausgaben", "Einnahmen"], finance.type));
+            editFinanceForm.appendChild(createSelectElement("editFinanceAccount", "Konto auswählen", ["Konto 05", "Konto 03", "Bar"], finance.account));
+
+            // Dynamische Felder
+            financeColumns.forEach((col) => {
+                editFinanceForm.appendChild(createInputElement("text", `editFinance_${col.name}`, col.name, finance[col.name] || ""));
+            });
+
+            const submitButton = document.createElement("button");
+            submitButton.type = "submit";
+            submitButton.textContent = "Speichern";
+            editFinanceForm.appendChild(submitButton);
+        }
+
+        function createInputElement(type, id, placeholder, value = "") {
+            const input = document.createElement("input");
+            input.type = type;
+            input.id = id;
+            input.placeholder = placeholder;
+            input.required = true;
+            input.value = value;
+            return input;
+        }
+
+        function createSelectElement(id, placeholder, options, selectedValue = "") {
+            const select = document.createElement("select");
+            select.id = id;
+            select.required = true;
+
+            const defaultOption = document.createElement("option");
+            defaultOption.value = "";
+            defaultOption.textContent = placeholder;
+            select.appendChild(defaultOption);
+
+            options.forEach((optionValue) => {
+                const option = document.createElement("option");
+                option.value = optionValue;
+                option.textContent = optionValue;
+                if (optionValue === selectedValue) {
+                    option.selected = true;
                 }
-                financeTableHeader.appendChild(th);
+                select.appendChild(option);
+            });
+
+            return select;
+        }
+
+        // Laden der Spalten und Finanzdaten
+        columnsCollection.onSnapshot((snapshot) => {
+            financeColumns = [];
+            snapshot.forEach((doc) => {
+                financeColumns.push({ id: doc.id, ...doc.data() });
+            });
+
+            renderTableHeader();
+            renderAddFinanceForm();
+            fetchAndRenderFinanceTransactions();
+            renderColumnsList();
+        });
+
+        // Finanzdaten abrufen und anzeigen
+        function fetchAndRenderFinanceTransactions() {
+            financeCollection.onSnapshot((snapshot) => {
+                if (snapshot.empty) {
+                    document.getElementById("loadingFinanceMessage").textContent = "Keine Finanztransaktionen gefunden.";
+                    return;
+                }
+
+                financesTable.innerHTML = "";
+                document.getElementById("loadingFinanceMessage").style.display = "none";
+                snapshot.forEach((doc) => {
+                    const finance = doc.data();
+                    const tr = document.createElement("tr");
+                    tr.setAttribute("data-id", doc.id);
+
+                    // Standardspalten
+                    tr.appendChild(createTableCell(finance.date));
+                    tr.appendChild(createTableCell(finance.category));
+                    tr.appendChild(createTableCell(finance.note));
+                    tr.appendChild(createTableCell(finance.amount));
+                    tr.appendChild(createTableCell(finance.yearlyFee));
+                    tr.appendChild(createTableCell(finance.type));
+                    tr.appendChild(createTableCell(finance.account));
+
+                    // Dynamische Spalten
+                    financeColumns.forEach((col) => {
+                        tr.appendChild(createTableCell(finance[col.name] || ""));
+                    });
+
+                    // Aktionen
+                    const actionsTd = document.createElement("td");
+                    const editButton = document.createElement("button");
+                    editButton.textContent = "Bearbeiten";
+                    editButton.addEventListener("click", () => openEditFinanceModal(doc.id, finance));
+                    actionsTd.appendChild(editButton);
+                    tr.appendChild(actionsTd);
+
+                    financesTable.appendChild(tr);
+                });
+            }, (error) => {
+                console.error("Fehler beim Abrufen der Finanztransaktionen: ", error);
+                document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
             });
         }
 
-        async function saveColumns() {
-            await settingsCollection.doc("financeColumns").set({ columns });
+        function createTableCell(content) {
+            const td = document.createElement("td");
+            td.textContent = content;
+            return td;
         }
 
-        // Neues Finanzdatensatz hinzufügen - Modal öffnen
-        const addFinanceModal = document.getElementById("addFinanceModal");
-        const openAddFinanceModalButton = document.getElementById("openAddFinanceModalButton");
-        const closeAddFinanceModal = document.getElementById("closeAddFinanceModal");
+        // Event Listener für das Hinzufügen einer neuen Finanztransaktion
+        document.getElementById("addFinanceForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const date = document.getElementById("financeDate").value;
+            const category = document.getElementById("financeCategory").value;
+            const note = document.getElementById("financeNote").value;
+            const amount = parseFloat(document.getElementById("financeAmount").value);
+            const yearlyFee = parseFloat(document.getElementById("financeYearlyFee").value);
+            const type = document.getElementById("financeType").value;
+            const account = document.getElementById("financeAccount").value;
 
-        openAddFinanceModalButton.addEventListener("click", () => {
-            addFinanceModal.style.display = "block";
+            // Dynamische Felder sammeln
+            const dynamicFields = {};
+            financeColumns.forEach((col) => {
+                const value = document.getElementById(`finance_${col.name}`).value;
+                dynamicFields[col.name] = value;
+            });
+
+            try {
+                await financeCollection.add({ date, category, note, amount, yearlyFee, type, account, ...dynamicFields });
+                document.getElementById("addFinanceForm").reset();
+                document.getElementById("addFinanceModal").style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Hinzufügen des Finanzdatensatzes: ", error);
+            }
         });
 
-        closeAddFinanceModal.addEventListener("click", () => {
-            addFinanceModal.style.display = "none";
+        // Event Listener für das Bearbeiten einer Finanztransaktion
+        document.getElementById("editFinanceForm").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const date = document.getElementById("editFinanceDate").value;
+            const category = document.getElementById("editFinanceCategory").value;
+            const note = document.getElementById("editFinanceNote").value;
+            const amount = parseFloat(document.getElementById("editFinanceAmount").value);
+            const yearlyFee = parseFloat(document.getElementById("editFinanceYearlyFee").value);
+            const type = document.getElementById("editFinanceType").value;
+            const account = document.getElementById("editFinanceAccount").value;
+
+            // Dynamische Felder sammeln
+            const dynamicFields = {};
+            financeColumns.forEach((col) => {
+                const value = document.getElementById(`editFinance_${col.name}`).value;
+                dynamicFields[col.name] = value;
+            });
+
+            try {
+                await financeCollection.doc(currentEditFinanceId).update({ date, category, note, amount, yearlyFee, type, account, ...dynamicFields });
+                document.getElementById("editFinanceModal").style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Aktualisieren des Finanzdatensatzes: ", error);
+            }
         });
 
-        // Neue Spalte hinzufügen
-        const addColumnButton = document.getElementById("addColumnButton");
-        addColumnButton.addEventListener("click", async () => {
+        // Öffnen des Bearbeitungsmodals
+        function openEditFinanceModal(id, finance) {
+            currentEditFinanceId = id;
+            renderEditFinanceForm(finance);
+            document.getElementById("editFinanceModal").style.display = "block";
+        }
+
+        // Schließen des Bearbeitungsmodals
+        document.getElementById("closeEditFinanceModal").addEventListener("click", () => {
+            document.getElementById("editFinanceModal").style.display = "none";
+        });
+
+        // Schließen des Hinzufügen-Modals
+        document.getElementById("closeAddFinanceModal").addEventListener("click", () => {
+            document.getElementById("addFinanceModal").style.display = "none";
+        });
+
+        // Öffnen des Hinzufügen-Modals
+        document.getElementById("openAddFinanceModalButton").addEventListener("click", () => {
+            document.getElementById("addFinanceModal").style.display = "block";
+        });
+
+        // Löschen einer Finanztransaktion
+        document.getElementById("deleteFinanceButton").addEventListener("click", async () => {
+            if (currentEditFinanceId) {
+                try {
+                    await financeCollection.doc(currentEditFinanceId).delete();
+                    document.getElementById("editFinanceModal").style.display = "none";
+                } catch (error) {
+                    console.error("Fehler beim Löschen des Finanzdatensatzes: ", error);
+                }
+            }
+        });
+
+        // Spaltenverwaltung
+        const manageColumnsModal = document.getElementById("manageColumnsModal");
+        const manageColumnsButton = document.getElementById("manageColumnsButton");
+        const closeManageColumnsModal = document.getElementById("closeManageColumnsModal");
+        const columnsList = document.getElementById("columnsList");
+        const addNewColumnButton = document.getElementById("addNewColumnButton");
+
+        manageColumnsButton.addEventListener("click", () => {
+            manageColumnsModal.style.display = "block";
+            renderColumnsList();
+        });
+
+        closeManageColumnsModal.addEventListener("click", () => {
+            manageColumnsModal.style.display = "none";
+        });
+
+        function renderColumnsList() {
+            columnsList.innerHTML = "";
+            financeColumns.forEach((column) => {
+                const li = document.createElement("li");
+                li.textContent = column.name;
+
+                const renameButton = document.createElement("button");
+                renameButton.textContent = "Umbenennen";
+                renameButton.addEventListener("click", () => renameColumn(column));
+
+                const deleteButton = document.createElement("button");
+                deleteButton.textContent = "Löschen";
+                deleteButton.addEventListener("click", () => deleteColumn(column));
+
+                li.appendChild(renameButton);
+                li.appendChild(deleteButton);
+                columnsList.appendChild(li);
+            });
+        }
+
+        addNewColumnButton.addEventListener("click", () => {
             const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
             if (newColumnName) {
-                columns.splice(columns.length - 1, 0, newColumnName); // Füge die neue Spalte vor der Aktionen-Spalte hinzu
-                await saveColumns();
-                renderTableHeader();
+                columnsCollection.add({ name: newColumnName });
             }
         });
 
-        async function renameColumn(index) {
-            const newColumnName = prompt("Bitte geben Sie den neuen Namen für die Spalte ein:", columns[index]);
-            if (newColumnName) {
-                columns[index] = newColumnName;
-                await saveColumns();
-                renderTableHeader();
+        function renameColumn(column) {
+            const newName = prompt("Bitte geben Sie den neuen Namen für die Spalte ein:", column.name);
+            if (newName && newName !== column.name) {
+                columnsCollection.doc(column.id).update({ name: newName });
+
+                // Aktualisieren der Finanzdatensätze
+                financeCollection.get().then((snapshot) => {
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        if (data[column.name] !== undefined) {
+                            const updatedData = {};
+                            updatedData[newName] = data[column.name];
+                            updatedData[column.name] = firebase.firestore.FieldValue.delete();
+                            financeCollection.doc(doc.id).update(updatedData);
+                        }
+                    });
+                });
             }
         }
 
-        async function deleteColumn(index) {
-            if (confirm(`Möchten Sie die Spalte "${columns[index]}" wirklich löschen?`)) {
-                columns.splice(index, 1);
-                await saveColumns();
-                renderTableHeader();
+        function deleteColumn(column) {
+            if (confirm(`Sind Sie sicher, dass Sie die Spalte "${column.name}" löschen möchten?`)) {
+                columnsCollection.doc(column.id).delete();
+
+                // Entfernen des Feldes aus allen Finanzdatensätzen
+                financeCollection.get().then((snapshot) => {
+                    snapshot.forEach((doc) => {
+                        financeCollection.doc(doc.id).update({
+                            [column.name]: firebase.firestore.FieldValue.delete()
+                        });
+                    });
+                });
             }
         }
 
-        // Finanzliste anzeigen
-        const financesTable = document.getElementById("finances");
-        financeCollection.onSnapshot((snapshot) => {
-            if (snapshot.empty) {
-                document.getElementById("loadingFinanceMessage").textContent = "Keine Finanztransaktionen gefunden.";
+        // Exportieren der Finanzdaten
+        document.getElementById("exportFinanceButton").addEventListener("click", async () => {
+            try {
+                const snapshot = await financeCollection.get();
+                if (snapshot.empty) {
+                    alert("Keine Finanzdaten zum Exportieren vorhanden.");
+                    return;
+                }
+
+                const financeData = [];
+                snapshot.forEach((doc) => {
+                    financeData.push(doc.data());
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(financeData);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzen");
+                XLSX.writeFile(workbook, "Finanzen.xlsx");
+            } catch (error) {
+                console.error("Fehler beim Exportieren der Finanzdaten: ", error);
+            }
+        });
+
+        // Importieren der Finanzdaten
+        document.getElementById("importFinanceFile").addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) {
                 return;
             }
 
-            financesTable.innerHTML = "";
-            document.getElementById("loadingFinanceMessage").style.display = "none";
-            snapshot.forEach((doc) => {
-                const finance = doc.data();
-                const tr = document.createElement("tr");
-                tr.setAttribute("data-id", doc.id);
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const financeData = XLSX.utils.sheet_to_json(worksheet);
 
-                columns.forEach((column) => {
-                    const td = document.createElement("td");
-                    if (finance[column.toLowerCase()]) {
-                        td.textContent = finance[column.toLowerCase()];
-                    } else {
-                        td.textContent = "-";
+                try {
+                    for (const finance of financeData) {
+                        await financeCollection.add(finance);
                     }
-                    tr.appendChild(td);
-                });
-
-                financesTable.appendChild(tr);
-            });
-        }, (error) => {
-            console.error("Fehler beim Abrufen der Finanztransaktionen: ", error);
-            document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
+                    alert("Finanzdaten erfolgreich importiert.");
+                } catch (error) {
+                    console.error("Fehler beim Importieren der Finanzdaten: ", error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
         });
-
-        loadColumns();
     </script>
 </body>
 </html>
