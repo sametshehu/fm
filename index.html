@@ -260,7 +260,7 @@
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
         membersCollection.onSnapshot((snapshot) => {
-            console.log("Snapshot erhalten", snapshot);
+            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             membersTable.innerHTML = "";
             if (snapshot.empty) {
                 console.log("Keine Mitglieder in der Datenbank vorhanden.");
@@ -269,8 +269,63 @@
                 document.getElementById("loadingMessage").style.display = "none";
                 snapshot.forEach((doc) => {
                     const member = doc.data();
-                    console.log("Mitgliedsdokument:", doc.id, member);
+                    console.log("Mitgliedsdaten:", doc.id, member);
                     const tr = document.createElement("tr");
                     tr.setAttribute("data-id", doc.id);
 
-                    const name
+                    const nameTd = document.createElement("td");
+                    nameTd.textContent = member.name || "(kein Name)";
+                    tr.appendChild(nameTd);
+
+                    const emailTd = document.createElement("td");
+                    emailTd.textContent = member.email || "(keine Email)";
+                    tr.appendChild(emailTd);
+
+                    const phoneTd = document.createElement("td");
+                    phoneTd.textContent = member.phone || "(keine Telefonnummer)";
+                    tr.appendChild(phoneTd);
+
+                    const addressTd = document.createElement("td");
+                    addressTd.textContent = member.address || "(keine Adresse)";
+                    tr.appendChild(addressTd);
+
+                    const zipTd = document.createElement("td");
+                    zipTd.textContent = member.zip || "(keine PLZ)";
+                    tr.appendChild(zipTd);
+
+                    const cityTd = document.createElement("td");
+                    cityTd.textContent = member.city || "(kein Ort)";
+                    tr.appendChild(cityTd);
+
+                    const actionsTd = document.createElement("td");
+                    const editButton = document.createElement("button");
+                    editButton.textContent = "Bearbeiten";
+                    editButton.addEventListener("click", () => openEditModal(doc.id, member));
+                    actionsTd.appendChild(editButton);
+                    tr.appendChild(actionsTd);
+
+                    membersTable.appendChild(tr);
+                });
+            }
+        }, (error) => {
+            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
+            document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
+        });
+
+        // Bearbeiten-Modul öffnen
+        const editMemberModal = document.getElementById("editMemberModal");
+        const closeModal = document.getElementById("closeModal");
+        const editMemberForm = document.getElementById("editMemberForm");
+        const deleteMemberButton = document.getElementById("deleteMemberButton");
+        let currentEditId = null;
+
+        function openEditModal(id, member) {
+            currentEditId = id;
+            if (document.getElementById("editName")) {
+                document.getElementById("editName").value = member.name;
+            }
+            if (document.getElementById("editEmail")) {
+                document.getElementById("editEmail").value = member.email;
+            }
+            if (document.getElementById("editPhone")) {
+                document.getElementById
