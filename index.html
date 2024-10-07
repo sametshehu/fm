@@ -313,7 +313,18 @@
                 // Betrag für 2024 berechnen
                 const payment2024Td = document.createElement("td");
                 let totalPayment2024 = 0;
-                const financeQuery = await financeCollection.where("note", "==", member.name).where("category", "==", "Mitgliederbeitrag").get();
+                const financeQuery = await financeCollection.get();
+                financeQuery.forEach((financeDoc) => {
+                    const financeData = financeDoc.data();
+                    if (
+                        (financeData.note === member.name) ||
+                        (financeData.note.split(' ').reverse().join(' ') === member.name)
+                    ) {
+                        if (financeData.category === "Mitgliederbeitrag") {
+                            totalPayment2024 += parseFloat(financeData.amount);
+                        }
+                    }
+                });
                 financeQuery.forEach((financeDoc) => {
                     totalPayment2024 += parseFloat(financeDoc.data().amount);
                 });
