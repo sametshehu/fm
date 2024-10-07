@@ -313,7 +313,7 @@
                 // Betrag für 2024 berechnen
                 const payment2024Td = document.createElement("td");
                 let totalPayment2024 = 0;
-                const financeQuery = await financeCollection.where("note", "==", member.name).get();
+                const financeQuery = await financeCollection.where("note", "==", member.name).where("category", "==", "Mitgliederbeitrag").get();
                 financeQuery.forEach((financeDoc) => {
                     totalPayment2024 += parseFloat(financeDoc.data().amount);
                 });
