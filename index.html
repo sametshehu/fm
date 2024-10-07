@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Mitgliederverwaltung</title>
-        <style>
+    <style>
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -197,7 +197,6 @@
             <span id="closeModal" class="close">&times;</span>
             <h2>Mitglied bearbeiten</h2>
             <form id="editMemberForm">
-                <input type="text" id="editPayment2024" placeholder="Betrag 2024">
                 <input type="text" id="editName" placeholder="Name" required>
                 <input type="email" id="editEmail" placeholder="Email">
                 <input type="text" id="editPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
@@ -227,18 +226,6 @@
         console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-
-        // Testverbindung zur Firestore-Datenbank
-        db.collection("members").get().then((querySnapshot) => {
-            console.log("Verbindung zu Firestore erfolgreich hergestellt. Dokumente gefunden: ", querySnapshot.size);
-            if (querySnapshot.size === 0) {
-                console.log("Keine Mitglieder vorhanden.");
-            }
-        }).catch((error) => {
-            console.error("Fehler bei der Verbindung zu Firestore: ", error);
-        });
-
-        // Mitglieder-Collection referenzieren
         const membersCollection = db.collection("members");
         const financeCollection = db.collection("finances");
 
@@ -265,11 +252,10 @@
             const address = document.getElementById("addAddress").value;
             const zip = document.getElementById("addZip").value;
             const city = document.getElementById("addCity").value;
-            const payment2024 = document.getElementById("editPayment2024").value;
             try {
                 console.log("Füge neues Mitglied hinzu...");
-                await membersCollection.add({ name, email, phone, address, zip, city, payment2024 });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city, payment2024 });
+                await membersCollection.add({ name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -280,7 +266,7 @@
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
         console.log("Höre auf Änderungen in der Mitglieder-Collection...");
-        membersCollection.onSnapshot((snapshot) => {
+        membersCollection.onSnapshot(async (snapshot) => {
             console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
                 console.log("Keine Mitglieder in der Datenbank vorhanden.");
@@ -290,7 +276,7 @@
 
             membersTable.innerHTML = "";
             document.getElementById("loadingMessage").style.display = "none";
-            snapshot.forEach((doc) => {
+            snapshot.forEach(async (doc) => {
                 const member = doc.data();
                 console.log("Mitgliedsdaten erhalten:", doc.id, member);
 
@@ -321,8 +307,14 @@
                 cityTd.textContent = member.city;
                 tr.appendChild(cityTd);
 
+                // Betrag für 2024 berechnen
                 const payment2024Td = document.createElement("td");
-                payment2024Td.textContent = member.payment2024 || "0";
+                let totalPayment2024 = 0;
+                const financeQuery = await financeCollection.where("note", "==", member.name).get();
+                financeQuery.forEach((financeDoc) => {
+                    totalPayment2024 += parseFloat(financeDoc.data().amount);
+                });
+                payment2024Td.textContent = totalPayment2024;
                 tr.appendChild(payment2024Td);
 
                 const actionsTd = document.createElement("td");
@@ -339,48 +331,21 @@
             document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
         });
 
-        // Finanzdaten abrufen und Mitgliedsbeiträge aktualisieren
-        financeCollection.onSnapshot((snapshot) => {
-            console.log("Abrufen der Finanzdaten...");
-            snapshot.forEach(async (doc) => {
-                const finance = doc.data();
-                const { note, amount, processed } = finance;
-
-                if (!processed && note) {
-                    // Suche nach einem Mitglied mit Namen im Feld "Bemerkung"
-                    const memberQuery = await membersCollection.where("name", "==", note).get();
-                    memberQuery.forEach(async (memberDoc) => {
-                        const memberData = memberDoc.data();
-                        const updatedPayment = parseFloat(memberData.payment2024 || 0) + parseFloat(amount);
-
-                        // Update des Beitrags für 2024 im Mitgliedseintrag
-                        await membersCollection.doc(memberDoc.id).update({ payment2024: updatedPayment });
-                        console.log(`Beitrag für Mitglied ${memberData.name} aktualisiert: ${updatedPayment}`);
-                    });
-
-                    // Markiere die Finanztransaktion als verarbeitet
-                    await financeCollection.doc(doc.id).update({ processed: true });
-                    console.log(`Finanztransaktion ${doc.id} als verarbeitet markiert.`);
-                }
-            });
-        });
-
         // Bearbeiten-Modul öffnen
         const editMemberModal = document.getElementById("editMemberModal");
         const closeModal = document.getElementById("closeModal");
         const editMemberForm = document.getElementById("editMemberForm");
         const deleteMemberButton = document.getElementById("deleteMemberButton");
-        let currentEditId = null;
+        let currentEditMemberId = null;
 
         function openEditModal(id, member) {
-            currentEditId = id;
+            currentEditMemberId = id;
             document.getElementById("editName").value = member.name;
             document.getElementById("editEmail").value = member.email;
             document.getElementById("editPhone").value = member.phone;
             document.getElementById("editAddress").value = member.address;
             document.getElementById("editZip").value = member.zip;
             document.getElementById("editCity").value = member.city;
-            document.getElementById("editPayment2024").value = member.payment2024 || "0";
             editMemberModal.style.display = "block";
         }
 
@@ -397,11 +362,8 @@
             const address = document.getElementById("editAddress").value;
             const zip = document.getElementById("editZip").value;
             const city = document.getElementById("editCity").value;
-            const payment2024 = document.getElementById("editPayment2024").value;
             try {
-                console.log("Aktualisiere Mitglied...");
-                await membersCollection.doc(currentEditId).update({ name, email, phone, address, zip, city, payment2024 });
-                console.log("Mitglied erfolgreich aktualisiert: ", { name, email, phone, address, zip, city, payment2024 });
+                await membersCollection.doc(currentEditMemberId).update({ name, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
@@ -410,11 +372,9 @@
 
         // Mitglied löschen
         deleteMemberButton.addEventListener("click", async () => {
-            if (currentEditId) {
+            if (currentEditMemberId) {
                 try {
-                    console.log("Lösche Mitglied...");
-                    await membersCollection.doc(currentEditId).delete();
-                    console.log("Mitglied erfolgreich gelöscht: ", currentEditId);
+                    await membersCollection.doc(currentEditMemberId).delete();
                     editMemberModal.style.display = "none";
                 } catch (error) {
                     console.error("Fehler beim Löschen des Mitglieds: ", error);
