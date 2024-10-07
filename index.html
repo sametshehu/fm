@@ -153,9 +153,12 @@
             <span id="closeAddModal" class="close">&times;</span>
             <h2>Neues Mitglied hinzufügen</h2>
             <form id="addMemberForm">
-                <input type="text" id="addName" placeholder="Name" required>
-                <input type="email" id="addEmail" placeholder="Email" required>
-                <input type="text" id="addPhone" placeholder="Telefonnummer" required pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
+                 required >
+                <input type="email" id="addEmail" placeholder="Email" >
+                <input type="text" id="addPhone" placeholder="Telefonnummer"  pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
+                <input type="text" id="addAddress" placeholder="Adresse" >
+                <input type="text" id="addZip" placeholder="PLZ" >
+                <input type="text" id="addCity" placeholder="Ort" >
                 <button type="submit">Hinzufügen</button>
             </form>
         </div>
@@ -173,6 +176,9 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Telefonnummer</th>
+                    <th>Adresse</th>
+                    <th>PLZ</th>
+                    <th>Ort</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
@@ -186,9 +192,12 @@
             <span id="closeModal" class="close">&times;</span>
             <h2>Mitglied bearbeiten</h2>
             <form id="editMemberForm">
-                <input type="text" id="editName" placeholder="Name" required>
-                <input type="email" id="editEmail" placeholder="Email" required>
-                <input type="text" id="editPhone" placeholder="Telefonnummer" required pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
+                 required >
+                <input type="email" id="editEmail" placeholder="Email" >
+                <input type="text" id="editPhone" placeholder="Telefonnummer"  pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
+                <input type="text" id="editAddress" placeholder="Adresse" >
+                <input type="text" id="editZip" placeholder="PLZ" >
+                <input type="text" id="editCity" placeholder="Ort" >
                 <button type="submit">Speichern</button>
             </form>
             <button id="deleteMemberButton" class="delete-button">Löschen</button>
@@ -235,9 +244,12 @@
             const name = document.getElementById("addName").value;
             const email = document.getElementById("addEmail").value;
             const phone = document.getElementById("addPhone").value;
+            const address = document.getElementById("addAddress").value;
+            const zip = document.getElementById("addZip").value;
+            const city = document.getElementById("addCity").value;
             try {
-                await membersCollection.add({ name, email, phone });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone });
+                await membersCollection.add({ name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -273,6 +285,18 @@
                     phoneTd.textContent = member.phone || "(keine Telefonnummer)";
                     tr.appendChild(phoneTd);
 
+                    const addressTd = document.createElement("td");
+                    addressTd.textContent = member.address || "(keine Adresse)";
+                    tr.appendChild(addressTd);
+
+                    const zipTd = document.createElement("td");
+                    zipTd.textContent = member.zip || "(keine PLZ)";
+                    tr.appendChild(zipTd);
+
+                    const cityTd = document.createElement("td");
+                    cityTd.textContent = member.city || "(kein Ort)";
+                    tr.appendChild(cityTd);
+
                     const actionsTd = document.createElement("td");
                     const editButton = document.createElement("button");
                     editButton.textContent = "Bearbeiten";
@@ -300,6 +324,9 @@
             document.getElementById("editName").value = member.name;
             document.getElementById("editEmail").value = member.email;
             document.getElementById("editPhone").value = member.phone;
+            document.getElementById("editAddress").value = member.address;
+            document.getElementById("editZip").value = member.zip;
+            document.getElementById("editCity").value = member.city;
             editMemberModal.style.display = "block";
         }
 
@@ -313,9 +340,12 @@
             const name = document.getElementById("editName").value;
             const email = document.getElementById("editEmail").value;
             const phone = document.getElementById("editPhone").value;
+            const address = document.getElementById("editAddress").value;
+            const zip = document.getElementById("editZip").value;
+            const city = document.getElementById("editCity").value;
             try {
-                await membersCollection.doc(currentEditId).update({ name, email, phone });
-                console.log("Mitglied erfolgreich bearbeitet: ", { name, email, phone });
+                await membersCollection.doc(currentEditId).update({ name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich bearbeitet: ", { name, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Bearbeiten des Mitglieds: ", error);
@@ -333,4 +363,5 @@
             }
         });
     </script>
-</
+</body>
+</html>
