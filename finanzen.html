@@ -159,6 +159,7 @@
             <h2>Neue Finanztransaktion hinzufügen</h2>
             <form id="addFinanceForm">
                 <input type="date" id="financeDate" placeholder="Datum" required>
+                <input type="text" id="financeCategory" placeholder="Kategorie" required>
                 <input type="text" id="financeNote" placeholder="Bemerkung" required>
                 <input type="number" id="financeAmount" placeholder="Betrag" required>
                 <button type="submit">Hinzufügen</button>
@@ -178,6 +179,7 @@
             <thead>
                 <tr>
                     <th>Datum</th>
+                    <th>Kategorie</th>
                     <th>Bemerkung</th>
                     <th>Betrag</th>
                     <th>Aktionen</th>
@@ -194,6 +196,7 @@
             <h2>Finanztransaktion bearbeiten</h2>
             <form id="editFinanceForm">
                 <input type="date" id="editFinanceDate" placeholder="Datum" required>
+                <input type="text" id="editFinanceCategory" placeholder="Kategorie" required>
                 <input type="text" id="editFinanceNote" placeholder="Bemerkung" required>
                 <input type="number" id="editFinanceAmount" placeholder="Betrag" required>
                 <button type="submit">Speichern</button>
@@ -238,10 +241,11 @@
         addFinanceForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const date = document.getElementById("financeDate").value;
+            const category = document.getElementById("financeCategory").value;
             const note = document.getElementById("financeNote").value;
             const amount = parseFloat(document.getElementById("financeAmount").value);
             try {
-                await financeCollection.add({ date, note, amount });
+                await financeCollection.add({ date, category, note, amount });
                 addFinanceForm.reset();
                 addFinanceModal.style.display = "none";
             } catch (error) {
@@ -267,6 +271,10 @@
                 const dateTd = document.createElement("td");
                 dateTd.textContent = finance.date;
                 tr.appendChild(dateTd);
+
+                const categoryTd = document.createElement("td");
+                categoryTd.textContent = finance.category;
+                tr.appendChild(categoryTd);
 
                 const noteTd = document.createElement("td");
                 noteTd.textContent = finance.note;
@@ -300,6 +308,7 @@
         function openEditFinanceModal(id, finance) {
             currentEditFinanceId = id;
             document.getElementById("editFinanceDate").value = finance.date;
+            document.getElementById("editFinanceCategory").value = finance.category;
             document.getElementById("editFinanceNote").value = finance.note;
             document.getElementById("editFinanceAmount").value = finance.amount;
             editFinanceModal.style.display = "block";
@@ -313,10 +322,11 @@
         editFinanceForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const date = document.getElementById("editFinanceDate").value;
+            const category = document.getElementById("editFinanceCategory").value;
             const note = document.getElementById("editFinanceNote").value;
             const amount = parseFloat(document.getElementById("editFinanceAmount").value);
             try {
-                await financeCollection.doc(currentEditFinanceId).update({ date, note, amount });
+                await financeCollection.doc(currentEditFinanceId).update({ date, category, note, amount });
                 editFinanceModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Finanzdatensatzes: ", error);
