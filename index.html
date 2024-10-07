@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+  <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -315,16 +315,17 @@
                 let totalPayment2024 = 0;
                 const financeQuery = await financeCollection.get();
                 financeQuery.forEach((financeDoc) => {
-                    const financeData = financeDoc.data();
-                    if (
-                        (financeData.note === member.name) ||
-                        (financeData.note.split(' ').reverse().join(' ') === member.name)
-                    ) {
-                        if (financeData.category === "Mitgliederbeitrag") {
-                            totalPayment2024 += parseFloat(financeData.amount);
-                        }
-                    }
-                });
+                  const financeData = financeDoc.data();
+                  if (
+                    financeData.note.includes(member.name.split(' ')[0]) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
+                    financeData.note.includes(member.name.split(' ')[1])    // Überprüfen, ob der Nachname in der Bemerkung vorkommt
+                  ) {
+                      if (financeData.category === "Mitgliederbeitrag") {
+                          totalPayment2024 += parseFloat(financeData.amount);
+                      }
+                  }
+              });
+
                 
                 payment2024Td.textContent = totalPayment2024;
                 tr.appendChild(payment2024Td);
