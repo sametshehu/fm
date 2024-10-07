@@ -1,4 +1,4 @@
-  <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
@@ -318,7 +318,8 @@
                   const financeData = financeDoc.data();
                   if (
                     financeData.note.includes(member.name.split(' ')[0]) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
-                    financeData.note.includes(member.name.split(' ')[1])    // Überprüfen, ob der Nachname in der Bemerkung vorkommt
+                    financeData.note.includes(member.name.split(' ')[1]) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
+                    financeData.yearlyFee === 2024 // Überprüfen, ob der Mitgliedsbeitrag für das Jahr 2024 ist
                   ) {
                       if (financeData.category === "Mitgliederbeitrag") {
                           totalPayment2024 += parseFloat(financeData.amount);
@@ -326,7 +327,6 @@
                   }
               });
 
-                
                 payment2024Td.textContent = totalPayment2024;
                 tr.appendChild(payment2024Td);
 
