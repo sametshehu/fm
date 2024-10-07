@@ -167,6 +167,7 @@
                 </select>
                 <input type="text" id="financeNote" placeholder="Bemerkung" required>
                 <input type="number" id="financeAmount" placeholder="Betrag" required>
+                <input type="number" id="financeYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
                 <button type="submit">Hinzufügen</button>
             </form>
         </div>
@@ -187,6 +188,7 @@
                     <th>Kategorie</th>
                     <th>Bemerkung</th>
                     <th>Betrag</th>
+                    <th>Mitgl. Beitrag Jahr</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
@@ -209,6 +211,7 @@
                 </select>
                 <input type="text" id="editFinanceNote" placeholder="Bemerkung" required>
                 <input type="number" id="editFinanceAmount" placeholder="Betrag" required>
+                <input type="number" id="editFinanceYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
                 <button type="submit">Speichern</button>
             </form>
             <button id="deleteFinanceButton" class="delete-button">Löschen</button>
@@ -254,8 +257,9 @@
             const category = document.getElementById("financeCategory").value;
             const note = document.getElementById("financeNote").value;
             const amount = parseFloat(document.getElementById("financeAmount").value);
+            const yearlyFee = parseFloat(document.getElementById("financeYearlyFee").value);
             try {
-                await financeCollection.add({ date, category, note, amount });
+                await financeCollection.add({ date, category, note, amount, yearlyFee });
                 addFinanceForm.reset();
                 addFinanceModal.style.display = "none";
             } catch (error) {
@@ -294,6 +298,10 @@
                 amountTd.textContent = finance.amount;
                 tr.appendChild(amountTd);
 
+                const yearlyFeeTd = document.createElement("td");
+                yearlyFeeTd.textContent = finance.yearlyFee;
+                tr.appendChild(yearlyFeeTd);
+
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
                 editButton.textContent = "Bearbeiten";
@@ -321,6 +329,7 @@
             document.getElementById("editFinanceCategory").value = finance.category;
             document.getElementById("editFinanceNote").value = finance.note;
             document.getElementById("editFinanceAmount").value = finance.amount;
+            document.getElementById("editFinanceYearlyFee").value = finance.yearlyFee;
             editFinanceModal.style.display = "block";
         }
 
@@ -335,8 +344,9 @@
             const category = document.getElementById("editFinanceCategory").value;
             const note = document.getElementById("editFinanceNote").value;
             const amount = parseFloat(document.getElementById("editFinanceAmount").value);
+            const yearlyFee = parseFloat(document.getElementById("editFinanceYearlyFee").value);
             try {
-                await financeCollection.doc(currentEditFinanceId).update({ date, category, note, amount });
+                await financeCollection.doc(currentEditFinanceId).update({ date, category, note, amount, yearlyFee });
                 editFinanceModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Finanzdatensatzes: ", error);
