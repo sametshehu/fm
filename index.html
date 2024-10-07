@@ -325,9 +325,7 @@
                         }
                     }
                 });
-                financeQuery.forEach((financeDoc) => {
-                    totalPayment2024 += parseFloat(financeDoc.data().amount);
-                });
+                
                 payment2024Td.textContent = totalPayment2024;
                 tr.appendChild(payment2024Td);
 
