@@ -225,6 +225,9 @@
         // Testverbindung zur Firestore-Datenbank
         db.collection("members").get().then((querySnapshot) => {
             console.log("Verbindung zu Firestore erfolgreich hergestellt. Dokumente gefunden: ", querySnapshot.size);
+            if (querySnapshot.size === 0) {
+                console.log("Keine Mitglieder vorhanden.");
+            }
         }).catch((error) => {
             console.error("Fehler bei der Verbindung zu Firestore: ", error);
         });
@@ -234,4 +237,158 @@
 
         // Neues Mitglied hinzufügen - Modal öffnen
         const addMemberModal = document.getElementById("addMemberModal");
-        const openAddModalButton
+        const openAddModalButton = document.getElementById("openAddModalButton");
+        const closeAddModal = document.getElementById("closeAddModal");
+
+        openAddModalButton.addEventListener("click", () => {
+            addMemberModal.style.display = "block";
+        });
+
+        closeAddModal.addEventListener("click", () => {
+            addMemberModal.style.display = "none";
+        });
+
+        // Neues Mitglied hinzufügen
+        const addMemberForm = document.getElementById("addMemberForm");
+        addMemberForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("addName").value;
+            const email = document.getElementById("addEmail").value;
+            const phone = document.getElementById("addPhone").value;
+            const address = document.getElementById("addAddress").value;
+            const zip = document.getElementById("addZip").value;
+            const city = document.getElementById("addCity").value;
+            try {
+                console.log("Füge neues Mitglied hinzu...");
+                await membersCollection.add({ name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city });
+                addMemberForm.reset();
+                addMemberModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
+            }
+        });
+
+        // Mitgliederliste anzeigen
+        const membersTable = document.getElementById("members");
+        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
+        membersCollection.onSnapshot((snapshot) => {
+            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
+            if (snapshot.empty) {
+                console.log("Keine Mitglieder in der Datenbank vorhanden.");
+                document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
+                return;
+            }
+
+            membersTable.innerHTML = "";
+            document.getElementById("loadingMessage").style.display = "none";
+            snapshot.forEach((doc) => {
+                const member = doc.data();
+                console.log("Mitgliedsdaten erhalten:", doc.id, member);
+
+                // Überprüfen, ob die Member-Daten korrekt sind und Standardwerte setzen, falls nötig
+                const name = member.name || "(kein Name)";
+                const email = member.email || "(keine Email)";
+                const phone = member.phone || "(keine Telefonnummer)";
+                const address = member.address || "(keine Adresse)";
+                const zip = member.zip || "(keine PLZ)";
+                const city = member.city || "(kein Ort)";
+
+                const tr = document.createElement("tr");
+                tr.setAttribute("data-id", doc.id);
+
+                const nameTd = document.createElement("td");
+                nameTd.textContent = name;
+                tr.appendChild(nameTd);
+
+                const emailTd = document.createElement("td");
+                emailTd.textContent = email;
+                tr.appendChild(emailTd);
+
+                const phoneTd = document.createElement("td");
+                phoneTd.textContent = phone;
+                tr.appendChild(phoneTd);
+
+                const addressTd = document.createElement("td");
+                addressTd.textContent = address;
+                tr.appendChild(addressTd);
+
+                const zipTd = document.createElement("td");
+                zipTd.textContent = zip;
+                tr.appendChild(zipTd);
+
+                const cityTd = document.createElement("td");
+                cityTd.textContent = city;
+                tr.appendChild(cityTd);
+
+                const actionsTd = document.createElement("td");
+                const editButton = document.createElement("button");
+                editButton.textContent = "Bearbeiten";
+                editButton.addEventListener("click", () => openEditModal(doc.id, member));
+                actionsTd.appendChild(editButton);
+                tr.appendChild(actionsTd);
+
+                membersTable.appendChild(tr);
+            });
+        }, (error) => {
+            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
+            document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
+        });
+
+        // Bearbeiten-Modul öffnen
+        const editMemberModal = document.getElementById("editMemberModal");
+        const closeModal = document.getElementById("closeModal");
+        const editMemberForm = document.getElementById("editMemberForm");
+        const deleteMemberButton = document.getElementById("deleteMemberButton");
+        let currentEditId = null;
+
+        function openEditModal(id, member) {
+            currentEditId = id;
+            document.getElementById("editName").value = member.name;
+            document.getElementById("editEmail").value = member.email;
+            document.getElementById("editPhone").value = member.phone;
+            document.getElementById("editAddress").value = member.address;
+            document.getElementById("editZip").value = member.zip;
+            document.getElementById("editCity").value = member.city;
+            editMemberModal.style.display = "block";
+        }
+
+        closeModal.addEventListener("click", () => {
+            editMemberModal.style.display = "none";
+        });
+
+        // Mitglied bearbeiten speichern
+        editMemberForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const name = document.getElementById("editName").value;
+            const email = document.getElementById("editEmail").value;
+            const phone = document.getElementById("editPhone").value;
+            const address = document.getElementById("editAddress").value;
+            const zip = document.getElementById("editZip").value;
+            const city = document.getElementById("editCity").value;
+            try {
+                console.log("Aktualisiere Mitglied...");
+                await membersCollection.doc(currentEditId).update({ name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich aktualisiert: ", { name, email, phone, address, zip, city });
+                editMemberModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
+            }
+        });
+
+        // Mitglied löschen
+        deleteMemberButton.addEventListener("click", async () => {
+            if (currentEditId) {
+                try {
+                    console.log("Lösche Mitglied...");
+                    await membersCollection.doc(currentEditId).delete();
+                    console.log("Mitglied erfolgreich gelöscht: ", currentEditId);
+                    editMemberModal.style.display = "none";
+                } catch (error) {
+                    console.error("Fehler beim Löschen des Mitglieds: ", error);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
