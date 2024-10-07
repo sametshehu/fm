@@ -158,6 +158,7 @@
             <span id="closeAddModal" class="close">&times;</span>
             <h2>Neues Mitglied hinzufügen</h2>
             <form id="addMemberForm">
+                <input type="text" id="addMemberNumber" placeholder="Mitgliedsnummer" required>
                 <input type="text" id="addName" placeholder="Name" required>
                 <input type="email" id="addEmail" placeholder="Email">
                 <input type="text" id="addPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
@@ -180,13 +181,18 @@
         <table id="membersTable">
             <thead>
                 <tr>
+                    <th>Mitgliedsnummer</th>
                     <th>Name</th>
                     <th>Email</th>
                     <th>Telefonnummer</th>
                     <th>Adresse</th>
                     <th>PLZ</th>
                     <th>Ort</th>
+                    <th>2022</th>
+                    <th>2023</th>
                     <th>2024</th>
+                    <th>2025</th>
+                    <th>2026</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
@@ -200,6 +206,7 @@
             <span id="closeModal" class="close">&times;</span>
             <h2>Mitglied bearbeiten</h2>
             <form id="editMemberForm">
+                <input type="text" id="editMemberNumber" placeholder="Mitgliedsnummer" required>
                 <input type="text" id="editName" placeholder="Name" required>
                 <input type="email" id="editEmail" placeholder="Email">
                 <input type="text" id="editPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
@@ -249,6 +256,7 @@
         const addMemberForm = document.getElementById("addMemberForm");
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
+            const memberNumber = document.getElementById("addMemberNumber").value;
             const name = document.getElementById("addName").value;
             const email = document.getElementById("addEmail").value;
             const phone = document.getElementById("addPhone").value;
@@ -257,8 +265,8 @@
             const city = document.getElementById("addCity").value;
             try {
                 console.log("Füge neues Mitglied hinzu...");
-                await membersCollection.add({ name, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { name, email, phone, address, zip, city });
+                await membersCollection.add({ memberNumber, name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, name, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -286,6 +294,10 @@
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
+                const memberNumberTd = document.createElement("td");
+                memberNumberTd.textContent = member.memberNumber;
+                tr.appendChild(memberNumberTd);
+
                 const nameTd = document.createElement("td");
                 nameTd.textContent = member.name;
                 tr.appendChild(nameTd);
@@ -310,25 +322,27 @@
                 cityTd.textContent = member.city;
                 tr.appendChild(cityTd);
 
-                // Betrag für 2024 berechnen
-                const payment2024Td = document.createElement("td");
-                let totalPayment2024 = 0;
-                const financeQuery = await financeCollection.get();
-                financeQuery.forEach((financeDoc) => {
-                  const financeData = financeDoc.data();
-                  if (
-                    financeData.note.includes(member.name.split(' ')[0]) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
-                    financeData.note.includes(member.name.split(' ')[1]) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
-                    financeData.yearlyFee === 2024 // Überprüfen, ob der Mitgliedsbeitrag für das Jahr 2024 ist
-                  ) {
-                      if (financeData.category === "Mitgliederbeitrag") {
-                          totalPayment2024 += parseFloat(financeData.amount);
-                      }
-                  }
-              });
+                const years = [2022, 2023, 2024, 2025, 2026];
+                years.forEach((year) => {
+                    const paymentTd = document.createElement("td");
+                    let totalPayment = 0;
+                    const financeQuery = await financeCollection.get();
+                    financeQuery.forEach((financeDoc) => {
+                        const financeData = financeDoc.data();
+                        if (
+                            financeData.note.includes(member.name.split(' ')[0]) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
+                            financeData.note.includes(member.name.split(' ')[1]) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
+                            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
+                        ) {
+                            if (financeData.category === "Mitgliederbeitrag") {
+                                totalPayment += parseFloat(financeData.amount);
+                            }
+                        }
+                    });
 
-                payment2024Td.textContent = totalPayment2024;
-                tr.appendChild(payment2024Td);
+                    paymentTd.textContent = totalPayment;
+                    tr.appendChild(paymentTd);
+                });
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
@@ -353,6 +367,7 @@
 
         function openEditModal(id, member) {
             currentEditMemberId = id;
+            document.getElementById("editMemberNumber").value = member.memberNumber;
             document.getElementById("editName").value = member.name;
             document.getElementById("editEmail").value = member.email;
             document.getElementById("editPhone").value = member.phone;
@@ -369,6 +384,7 @@
         // Mitglied bearbeiten
         editMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
+            const memberNumber = document.getElementById("editMemberNumber").value;
             const name = document.getElementById("editName").value;
             const email = document.getElementById("editEmail").value;
             const phone = document.getElementById("editPhone").value;
@@ -376,7 +392,7 @@
             const zip = document.getElementById("editZip").value;
             const city = document.getElementById("editCity").value;
             try {
-                await membersCollection.doc(currentEditMemberId).update({ name, email, phone, address, zip, city });
+                await membersCollection.doc(currentEditMemberId).update({ memberNumber, name, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
