@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Finanzverwaltung</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -243,11 +245,10 @@
         </div>
     </div>
 
-    <script type="module">
-        import firebaseConfig from './firebaseConfig.js';
-        
+    <!-- Firebase Konfiguration und Initialisierung -->
+    <script src="firebaseConfig.js"></script>
+    <script>
         // Firebase initialisieren
-        console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const financeCollection = db.collection("finances");
