@@ -159,7 +159,8 @@
             <h2>Neues Mitglied hinzufügen</h2>
             <form id="addMemberForm">
                 <input type="text" id="addMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="addName" placeholder="Name" required>
+                <input type="text" id="addVorname" placeholder="Vorname" required>
+                <input type="text" id="addNachname" placeholder="Nachname" required>
                 <input type="email" id="addEmail" placeholder="Email">
                 <input type="text" id="addPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
                 <input type="text" id="addAddress" placeholder="Adresse">
@@ -182,7 +183,8 @@
             <thead>
                 <tr>
                     <th>Mitgliedsnummer</th>
-                    <th>Name</th>
+                    <th>Vorname</th>
+                    <th>Nachname</th>
                     <th>Email</th>
                     <th>Telefonnummer</th>
                     <th>Adresse</th>
@@ -207,7 +209,8 @@
             <h2>Mitglied bearbeiten</h2>
             <form id="editMemberForm">
                 <input type="text" id="editMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="editName" placeholder="Name" required>
+                <input type="text" id="editVorname" placeholder="Vorname" required>
+                <input type="text" id="editNachname" placeholder="Nachname" required>
                 <input type="email" id="editEmail" placeholder="Email">
                 <input type="text" id="editPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
                 <input type="text" id="editAddress" placeholder="Adresse">
@@ -257,7 +260,8 @@
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const memberNumber = document.getElementById("addMemberNumber").value;
-            const name = document.getElementById("addName").value;
+            const vorname = document.getElementById("addVorname").value;
+            const nachname = document.getElementById("addNachname").value;
             const email = document.getElementById("addEmail").value;
             const phone = document.getElementById("addPhone").value;
             const address = document.getElementById("addAddress").value;
@@ -265,8 +269,8 @@
             const city = document.getElementById("addCity").value;
             try {
                 console.log("Füge neues Mitglied hinzu...");
-                await membersCollection.add({ memberNumber, name, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, name, email, phone, address, zip, city });
+                await membersCollection.add({ memberNumber, vorname, nachname, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, vorname, nachname, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -298,9 +302,13 @@
                 memberNumberTd.textContent = member.memberNumber;
                 tr.appendChild(memberNumberTd);
 
-                const nameTd = document.createElement("td");
-                nameTd.textContent = member.name;
-                tr.appendChild(nameTd);
+                const vornameTd = document.createElement("td");
+                vornameTd.textContent = member.vorname;
+                tr.appendChild(vornameTd);
+
+                const nachnameTd = document.createElement("td");
+                nachnameTd.textContent = member.nachname;
+                tr.appendChild(nachnameTd);
 
                 const emailTd = document.createElement("td");
                 emailTd.textContent = member.email;
@@ -330,8 +338,8 @@
                     financeQuery.forEach((financeDoc) => {
                         const financeData = financeDoc.data();
                         if (
-                            financeData.note.includes(member.name.split(' ')[0]) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
-                            financeData.note.includes(member.name.split(' ')[1]) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
+                            financeData.note.includes(member.vorname) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
+                            financeData.note.includes(member.nachname) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
                             financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
                         ) {
                             if (financeData.category === "Mitgliederbeitrag") {
@@ -368,7 +376,8 @@
         function openEditModal(id, member) {
             currentEditMemberId = id;
             document.getElementById("editMemberNumber").value = member.memberNumber;
-            document.getElementById("editName").value = member.name;
+            document.getElementById("editVorname").value = member.vorname;
+            document.getElementById("editNachname").value = member.nachname;
             document.getElementById("editEmail").value = member.email;
             document.getElementById("editPhone").value = member.phone;
             document.getElementById("editAddress").value = member.address;
@@ -385,14 +394,15 @@
         editMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const memberNumber = document.getElementById("editMemberNumber").value;
-            const name = document.getElementById("editName").value;
+            const vorname = document.getElementById("editVorname").value;
+            const nachname = document.getElementById("editNachname").value;
             const email = document.getElementById("editEmail").value;
             const phone = document.getElementById("editPhone").value;
             const address = document.getElementById("editAddress").value;
             const zip = document.getElementById("editZip").value;
             const city = document.getElementById("editCity").value;
             try {
-                await membersCollection.doc(currentEditMemberId).update({ memberNumber, name, email, phone, address, zip, city });
+                await membersCollection.doc(currentEditMemberId).update({ memberNumber, vorname, nachname, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
