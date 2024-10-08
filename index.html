@@ -331,17 +331,21 @@
                 tr.appendChild(cityTd);
 
                 const years = [2022, 2023, 2024, 2025, 2026];
-for (const year of years) {
+                for (const year of years) {
     const paymentTd = document.createElement("td");
     let totalPayment = 0;
     const financeQuery = await financeCollection.get();
     financeQuery.forEach((financeDoc) => {
         const financeData = financeDoc.data();
         
-        // Konvertiere sowohl Vorname/Nachname als auch die Notiz in Kleinbuchstaben für den Vergleich
+        // Überprüfen, ob vorname und nachname definiert sind, bevor toLowerCase angewendet wird
+        const vorname = member.vorname ? member.vorname.toLowerCase() : "";
+        const nachname = member.nachname ? member.nachname.toLowerCase() : "";
+        const note = financeData.note ? financeData.note.toLowerCase() : "";
+
         if (
-            financeData.note.toLowerCase().includes(member.vorname.toLowerCase()) && // Unabhängig von Groß-/Kleinschreibung prüfen
-            financeData.note.toLowerCase().includes(member.nachname.toLowerCase()) && // Unabhängig von Groß-/Kleinschreibung prüfen
+            note.includes(vorname) && // Unabhängig von Groß-/Kleinschreibung prüfen
+            note.includes(nachname) && // Unabhängig von Groß-/Kleinschreibung prüfen
             financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
         ) {
             if (financeData.category === "Mitgliederbeitrag") {
