@@ -8,267 +8,29 @@
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f4f4f4;
-        }
-
-        h1, h2 {
-            text-align: center;
-        }
-
-        .form-container {
-            max-width: 500px;
-            margin: 0 auto;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-        }
-
-        form input {
-            width: calc(100% - 22px);
-            padding: 10px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        form button {
-            width: 100%;
-            padding: 10px;
-            background-color: #28a745;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        form button:hover {
-            background-color: #218838;
-        }
-
-        .members-list {
-            max-width: 100%;
-            margin: 20px auto;
-            background: #ffffff;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            overflow-x: auto;
-        }
-
-        .members-list table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .members-list th, .members-list td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-
-        /* Modal Styling */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .modal-content {
-            background-color: #fff;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 8px;
-        }
-
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .delete-button {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .delete-button:hover {
-            background-color: #c82333;
-        }
-
-        #openAddModalButton {
-            width: calc(100% - 40px);
-            max-width: 500px;
-            padding: 10px;
-            margin: 20px auto;
-            display: block;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        #openAddModalButton:hover {
-            background-color: #0056b3;
-        }
-
-        .loading {
-            text-align: center;
-            font-size: 18px;
-            margin: 20px 0;
-        }
+        /* Your existing CSS styles */
+        /* ... */
     </style>
 </head>
 <body>
-    <nav>
-        <a href="index.html">Mitgliederverwaltung</a> |
-        <a href="finanzen.html">Finanzverwaltung</a>
-    </nav>
-    <h1>Moschee Drita - Mitgliederverwaltung</h1>
-    
-    <!-- Modal zum Hinzufügen eines Mitglieds -->
-    <div id="addMemberModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span id="closeAddModal" class="close">&times;</span>
-            <h2>Neues Mitglied hinzufügen</h2>
-            <form id="addMemberForm">
-                <input type="text" id="addMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="addVorname" placeholder="Vorname" required>
-                <input type="text" id="addNachname" placeholder="Nachname" required>
-                <input type="email" id="addEmail" placeholder="Email">
-                <input type="text" id="addPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
-                <input type="text" id="addAddress" placeholder="Adresse">
-                <input type="text" id="addZip" placeholder="PLZ">
-                <input type="text" id="addCity" placeholder="Ort">
-                <button type="submit">Hinzufügen</button>
-            </form>
-        </div>
-    </div>
+    <!-- Your existing HTML content -->
+    <!-- ... -->
 
-    <button id="openAddModalButton">Neues Mitglied hinzufügen</button>
-    <button id="exportButton">Mitglieder exportieren (Excel)</button>
-    <input type="file" id="importFile" accept=".xlsx, .xls" />
-
-    <!-- Mitgliederliste -->
-    <div class="members-list">
-        <h2>Mitgliederliste</h2>
-        <div class="loading" id="loadingMessage">Lade Mitglieder...</div>
-        <table id="membersTable">
-            <thead>
-                <tr>
-                    <th>Mitgliedsnummer</th>
-                    <th>Vorname</th>
-                    <th>Nachname</th>
-                    <th>Email</th>
-                    <th>Telefonnummer</th>
-                    <th>Adresse</th>
-                    <th>PLZ</th>
-                    <th>Ort</th>
-                    <th>2022</th>
-                    <th>2023</th>
-                    <th>2024</th>
-                    <th>2025</th>
-                    <th>2026</th>
-                    <th>Aktionen</th>
-                </tr>
-            </thead>
-            <tbody id="members"></tbody>
-        </table>
-    </div>
-
-    <!-- Modal zum Bearbeiten eines Mitglieds -->
-    <div id="editMemberModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span id="closeModal" class="close">&times;</span>
-            <h2>Mitglied bearbeiten</h2>
-            <form id="editMemberForm">
-                <input type="text" id="editMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="editVorname" placeholder="Vorname" required>
-                <input type="text" id="editNachname" placeholder="Nachname" required>
-                <input type="email" id="editEmail" placeholder="Email">
-                <input type="text" id="editPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
-                <input type="text" id="editAddress" placeholder="Adresse">
-                <input type="text" id="editZip" placeholder="PLZ">
-                <input type="text" id="editCity" placeholder="Ort">
-                <button type="submit">Speichern</button>
-            </form>
-            <button id="deleteMemberButton" class="delete-button">Löschen</button>
-        </div>
-    </div>
-
-    <!-- Firebase Konfiguration und Initialisierung -->
     <script src="firebaseConfig.js"></script>
     <script>
         // Firebase initialisieren
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const membersCollection = db.collection("members");
+        const financeCollection = db.collection("finances");
 
         // Neues Mitglied hinzufügen - Modal öffnen
-        const addMemberModal = document.getElementById("addMemberModal");
-        const openAddModalButton = document.getElementById("openAddModalButton");
-        const closeAddModal = document.getElementById("closeAddModal");
-
-        openAddModalButton.addEventListener("click", () => {
-            addMemberModal.style.display = "block";
-        });
-
-        closeAddModal.addEventListener("click", () => {
-            addMemberModal.style.display = "none";
-        });
-
-        // Neues Mitglied hinzufügen
-        const addMemberForm = document.getElementById("addMemberForm");
-        addMemberForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const memberNumber = document.getElementById("addMemberNumber").value;
-            const vorname = document.getElementById("addVorname").value;
-            const nachname = document.getElementById("addNachname").value;
-            const email = document.getElementById("addEmail").value;
-            const phone = document.getElementById("addPhone").value;
-            const address = document.getElementById("addAddress").value;
-            const zip = document.getElementById("addZip").value;
-            const city = document.getElementById("addCity").value;
-            try {
-                await membersCollection.add({ memberNumber, vorname, nachname, email, phone, address, zip, city });
-                addMemberForm.reset();
-                addMemberModal.style.display = "none";
-            } catch (error) {
-                console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
-            }
-        });
+        // Your existing JavaScript code for adding members
+        // ...
 
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
-        membersCollection.onSnapshot((snapshot) => {
+        membersCollection.onSnapshot(async (snapshot) => {
             if (snapshot.empty) {
                 document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
                 return;
@@ -276,7 +38,7 @@
 
             membersTable.innerHTML = "";
             document.getElementById("loadingMessage").style.display = "none";
-            snapshot.forEach((doc) => {
+            for (const doc of snapshot.docs) {
                 const member = doc.data();
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
@@ -314,13 +76,32 @@
                 tr.appendChild(cityTd);
 
                 const years = [2022, 2023, 2024, 2025, 2026];
-                years.forEach((year) => {
+                for (const year of years) {
                     const paymentTd = document.createElement("td");
                     let totalPayment = 0;
-                    // Hier kann ein Abgleich mit der Finanzen-Datenbank durchgeführt werden, um die Zahlung für jedes Jahr zu summieren
+                    const financeQuery = await financeCollection.get();
+                    financeQuery.forEach((financeDoc) => {
+                        const financeData = financeDoc.data();
+                        
+                        // Überprüfen, ob vorname und nachname definiert sind, bevor toLowerCase angewendet wird
+                        const vorname = member.vorname ? member.vorname.toLowerCase() : "";
+                        const nachname = member.nachname ? member.nachname.toLowerCase() : "";
+                        const note = financeData.note ? financeData.note.toLowerCase() : "";
+
+                        if (
+                            note.includes(vorname) && // Unabhängig von Groß-/Kleinschreibung prüfen
+                            note.includes(nachname) && // Unabhängig von Groß-/Kleinschreibung prüfen
+                            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
+                        ) {
+                            if (financeData.category === "Mitgliederbeitrag") {
+                                totalPayment += parseFloat(financeData.amount);
+                            }
+                        }
+                    });
+
                     paymentTd.textContent = totalPayment;
                     tr.appendChild(paymentTd);
-                });
+                }
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
@@ -330,105 +111,20 @@
                 tr.appendChild(actionsTd);
 
                 membersTable.appendChild(tr);
-            });
+            }
         });
 
         // Bearbeiten-Modul öffnen
-        const editMemberModal = document.getElementById("editMemberModal");
-        const closeModal = document.getElementById("closeModal");
-        const editMemberForm = document.getElementById("editMemberForm");
-        const deleteMemberButton = document.getElementById("deleteMemberButton");
-        let currentEditMemberId = null;
-
-        function openEditModal(id, member) {
-            currentEditMemberId = id;
-            document.getElementById("editMemberNumber").value = member.memberNumber;
-            document.getElementById("editVorname").value = member.vorname;
-            document.getElementById("editNachname").value = member.nachname;
-            document.getElementById("editEmail").value = member.email;
-            document.getElementById("editPhone").value = member.phone;
-            document.getElementById("editAddress").value = member.address;
-            document.getElementById("editZip").value = member.zip;
-            document.getElementById("editCity").value = member.city;
-            editMemberModal.style.display = "block";
-        }
-
-        closeModal.addEventListener("click", () => {
-            editMemberModal.style.display = "none";
-        });
-
-        // Mitglied bearbeiten
-        editMemberForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const memberNumber = document.getElementById("editMemberNumber").value;
-            const vorname = document.getElementById("editVorname").value;
-            const nachname = document.getElementById("editNachname").value;
-            const email = document.getElementById("editEmail").value;
-            const phone = document.getElementById("editPhone").value;
-            const address = document.getElementById("editAddress").value;
-            const zip = document.getElementById("editZip").value;
-            const city = document.getElementById("editCity").value;
-            try {
-                await membersCollection.doc(currentEditMemberId).update({ memberNumber, vorname, nachname, email, phone, address, zip, city });
-                editMemberModal.style.display = "none";
-            } catch (error) {
-                console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
-            }
-        });
-
-        // Mitglied löschen
-        deleteMemberButton.addEventListener("click", async () => {
-            if (currentEditMemberId) {
-                try {
-                    await membersCollection.doc(currentEditMemberId).delete();
-                    editMemberModal.style.display = "none";
-                } catch (error) {
-                    console.error("Fehler beim Löschen des Mitglieds: ", error);
-                }
-            }
-        });
+        // Your existing JavaScript code for editing and deleting members
+        // ...
 
         // Mitglieder exportieren (Excel)
-        document.getElementById("exportButton").addEventListener("click", async () => {
-            try {
-                const snapshot = await membersCollection.get();
-                const members = [];
-                snapshot.forEach((doc) => {
-                    members.push(doc.data());
-                });
-
-                const worksheet = XLSX.utils.json_to_sheet(members);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
-                XLSX.writeFile(workbook, "mitglieder.xlsx");
-            } catch (error) {
-                console.error("Fehler beim Exportieren der Mitglieder: ", error);
-            }
-        });
+        // Your existing JavaScript code for exporting members
+        // ...
 
         // Mitglieder importieren (Excel)
-        document.getElementById("importFile").addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const members = XLSX.utils.sheet_to_json(worksheet);
-
-                for (const member of members) {
-                    try {
-                        await membersCollection.add(member);
-                    } catch (error) {
-                        console.error("Fehler beim Importieren des Mitglieds: ", error);
-                    }
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
+        // Your existing JavaScript code for importing members
+        // ...
     </script>
 </body>
 </html>
