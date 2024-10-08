@@ -246,15 +246,18 @@
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <script>
-        // Firebase-Konfiguration
-        import firebaseConfig from './firebaseConfig.js';
+        
+        <script type="module">
+    import firebaseConfig from './firebaseConfig.js';
     
     // Firebase initialisieren
     console.log("Initialisiere Firebase...");
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
+    const membersCollection = db.collection("members");
     const financeCollection = db.collection("finances");
-        // Neues Finanzdatensatz hinzufügen - Modal öffnen
+            
+                       // Neues Finanzdatensatz hinzufügen - Modal öffnen
         const addFinanceModal = document.getElementById("addFinanceModal");
         const openAddFinanceModalButton = document.getElementById("openAddFinanceModalButton");
         const closeAddFinanceModal = document.getElementById("closeAddFinanceModal");
