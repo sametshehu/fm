@@ -5,9 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Mitgliederverwaltung</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/js/jquery.dataTables.min.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/datatables/1.10.21/css/jquery.dataTables.min.css">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -70,6 +67,7 @@
             padding: 10px;
             border: 1px solid #ddd;
             text-align: left;
+            cursor: pointer;
         }
 
         /* Modal Styling */
@@ -146,6 +144,27 @@
             font-size: 18px;
             margin: 20px 0;
         }
+
+        .filter-modal {
+            display: none;
+            position: fixed;
+            z-index: 2;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .filter-modal-content {
+            background-color: #fff;
+            margin: 10% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 8px;
+        }
     </style>
 </head>
 <body>
@@ -174,6 +193,16 @@
         </div>
     </div>
 
+    <!-- Filter Modal -->
+    <div id="filterModal" class="filter-modal">
+        <div class="filter-modal-content">
+            <span id="closeFilterModal" class="close">&times;</span>
+            <h2>Filter anwenden</h2>
+            <div id="filterOptions"></div>
+            <button id="applyFilterButton">Filter anwenden</button>
+        </div>
+    </div>
+
     <button id="openAddModalButton">Neues Mitglied hinzufügen</button>
     <button id="exportButton">Mitglieder exportieren (Excel)</button>
     <input type="file" id="importFile" accept=".xlsx, .xls" />
@@ -182,22 +211,22 @@
     <div class="members-list">
         <h2>Mitgliederliste</h2>
         <div class="loading" id="loadingMessage">Lade Mitglieder...</div>
-        <table id="membersTable" class="display">
+        <table id="membersTable">
             <thead>
                 <tr>
-                    <th>Mitgliedsnummer</th>
-                    <th>Vorname</th>
-                    <th>Nachname</th>
-                    <th>Email</th>
-                    <th>Telefonnummer</th>
-                    <th>Adresse</th>
-                    <th>PLZ</th>
-                    <th>Ort</th>
-                    <th>2022</th>
-                    <th>2023</th>
-                    <th>2024</th>
-                    <th>2025</th>
-                    <th>2026</th>
+                    <th data-column="memberNumber">Mitgliedsnummer</th>
+                    <th data-column="vorname">Vorname</th>
+                    <th data-column="nachname">Nachname</th>
+                    <th data-column="email">Email</th>
+                    <th data-column="phone">Telefonnummer</th>
+                    <th data-column="address">Adresse</th>
+                    <th data-column="zip">PLZ</th>
+                    <th data-column="city">Ort</th>
+                    <th data-column="2022">2022</th>
+                    <th data-column="2023">2023</th>
+                    <th data-column="2024">2024</th>
+                    <th data-column="2025">2025</th>
+                    <th data-column="2026">2026</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
@@ -370,9 +399,6 @@
 
                 membersTable.appendChild(tr);
             });
-
-            // DataTable initialisieren
-            $('#membersTable').DataTable();
         }, (error) => {
             console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
             document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
@@ -473,6 +499,43 @@
                 }
             };
             reader.readAsArrayBuffer(file);
+        });
+
+        // Filterfunktion öffnen
+        const filterModal = document.getElementById("filterModal");
+        const closeFilterModal = document.getElementById("closeFilterModal");
+        const applyFilterButton = document.getElementById("applyFilterButton");
+        let currentFilterColumn = null;
+
+        document.querySelectorAll(".members-list th[data-column]").forEach(th => {
+            th.addEventListener("click", () => {
+                currentFilterColumn = th.dataset.column;
+                document.getElementById("filterOptions").innerHTML = `
+                    <label for="filterValue">Filterwert:</label>
+                    <input type="text" id="filterValue" placeholder="Wert eingeben">
+                `;
+                filterModal.style.display = "block";
+            });
+        });
+
+        closeFilterModal.addEventListener("click", () => {
+            filterModal.style.display = "none";
+        });
+
+        applyFilterButton.addEventListener("click", () => {
+            const filterValue = document.getElementById("filterValue").value.toLowerCase();
+            if (currentFilterColumn) {
+                const rows = membersTable.querySelectorAll("tr");
+                rows.forEach(row => {
+                    const cell = row.querySelector(`td:nth-child(${[...document.querySelectorAll(".members-list th")].findIndex(th => th.dataset.column === currentFilterColumn) + 1})`);
+                    if (cell && !cell.textContent.toLowerCase().includes(filterValue)) {
+                        row.style.display = "none";
+                    } else {
+                        row.style.display = "";
+                    }
+                });
+            }
+            filterModal.style.display = "none";
         });
     </script>
 </body>
