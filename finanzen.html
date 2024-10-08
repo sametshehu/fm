@@ -229,6 +229,78 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const financeCollection = db.collection("finances");
+        const settingsCollection = db.collection("settings"); // Speichert Spalteninformationen
+
+        let currentColumns = [];
+
+        // Funktion zum Abrufen und Anzeigen der gespeicherten Spalten
+        async function loadColumns() {
+            const settingsDoc = await settingsCollection.doc("financeColumns").get();
+            if (settingsDoc.exists) {
+                currentColumns = settingsDoc.data().columns;
+                renderColumns();
+            } else {
+                // Standardspalten initialisieren, wenn keine vorhanden sind
+                currentColumns = ["Datum", "Kategorie", "Bemerkung", "Betrag", "Mitgl. Beitrag Jahr", "Typ", "Konto", "Aktionen"];
+                await settingsCollection.doc("financeColumns").set({ columns: currentColumns });
+                renderColumns();
+            }
+        }
+
+        // Spalten rendern
+        function renderColumns() {
+            const financeTableHeader = document.getElementById("financeTableHeader");
+            financeTableHeader.innerHTML = ""; // Alle aktuellen Spalten entfernen
+
+            currentColumns.forEach((column) => {
+                const th = document.createElement("th");
+                th.textContent = column;
+                financeTableHeader.appendChild(th);
+            });
+        }
+
+        // Neue Spalte hinzufügen
+        const addColumnButton = document.getElementById("addColumnButton");
+        addColumnButton.addEventListener("click", async () => {
+            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
+            if (newColumnName) {
+                currentColumns.splice(currentColumns.length - 1, 0, newColumnName); // Vor "Aktionen" einfügen
+                await settingsCollection.doc("financeColumns").set({ columns: currentColumns });
+                renderColumns();
+            }
+        });
+
+        // Spalte umbenennen
+        const renameColumnButton = document.getElementById("renameColumnButton");
+        renameColumnButton.addEventListener("click", async () => {
+            const columnToRename = prompt("Geben Sie die aktuelle Spaltenüberschrift ein, die Sie umbenennen möchten:");
+            const newColumnName = prompt("Geben Sie den neuen Namen der Spalte ein:");
+            if (columnToRename && newColumnName) {
+                const columnIndex = currentColumns.indexOf(columnToRename);
+                if (columnIndex > -1) {
+                    currentColumns[columnIndex] = newColumnName;
+                    await settingsCollection.doc("financeColumns").set({ columns: currentColumns });
+                    renderColumns();
+                }
+            }
+        });
+
+        // Spalte löschen
+        const deleteColumnButton = document.getElementById("deleteColumnButton");
+        deleteColumnButton.addEventListener("click", async () => {
+            const columnToDelete = prompt("Geben Sie die Spaltenüberschrift ein, die Sie löschen möchten:");
+            if (columnToDelete && columnToDelete !== "Aktionen") { // "Aktionen" nicht löschbar
+                const columnIndex = currentColumns.indexOf(columnToDelete);
+                if (columnIndex > -1) {
+                    currentColumns.splice(columnIndex, 1);
+                    await settingsCollection.doc("financeColumns").set({ columns: currentColumns });
+                    renderColumns();
+                }
+            }
+        });
+
+        // Seite laden und Spalten anzeigen
+        document.addEventListener("DOMContentLoaded", loadColumns);
 
         // Neues Finanzdatensatz hinzufügen - Modal öffnen
         const addFinanceModal = document.getElementById("addFinanceModal");
@@ -278,40 +350,41 @@
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
-                const dateTd = document.createElement("td");
-                dateTd.textContent = finance.date;
-                tr.appendChild(dateTd);
-
-                const categoryTd = document.createElement("td");
-                categoryTd.textContent = finance.category;
-                tr.appendChild(categoryTd);
-
-                const noteTd = document.createElement("td");
-                noteTd.textContent = finance.note;
-                tr.appendChild(noteTd);
-
-                const amountTd = document.createElement("td");
-                amountTd.textContent = finance.amount;
-                tr.appendChild(amountTd);
-
-                const yearlyFeeTd = document.createElement("td");
-                yearlyFeeTd.textContent = finance.yearlyFee;
-                tr.appendChild(yearlyFeeTd);
-
-                const typeTd = document.createElement("td");
-                typeTd.textContent = finance.type;
-                tr.appendChild(typeTd);
-
-                const accountTd = document.createElement("td");
-                accountTd.textContent = finance.account;
-                tr.appendChild(accountTd);
-
-                const actionsTd = document.createElement("td");
-                const editButton = document.createElement("button");
-                editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditFinanceModal(doc.id, finance));
-                actionsTd.appendChild(editButton);
-                tr.appendChild(actionsTd);
+                currentColumns.forEach((column) => {
+                    const td = document.createElement("td");
+                    switch (column) {
+                        case "Datum":
+                            td.textContent = finance.date || "-";
+                            break;
+                        case "Kategorie":
+                            td.textContent = finance.category || "-";
+                            break;
+                        case "Bemerkung":
+                            td.textContent = finance.note || "-";
+                            break;
+                        case "Betrag":
+                            td.textContent = finance.amount || "-";
+                            break;
+                        case "Mitgl. Beitrag Jahr":
+                            td.textContent = finance.yearlyFee || "-";
+                            break;
+                        case "Typ":
+                            td.textContent = finance.type || "-";
+                            break;
+                        case "Konto":
+                            td.textContent = finance.account || "-";
+                            break;
+                        case "Aktionen":
+                            const editButton = document.createElement("button");
+                            editButton.textContent = "Bearbeiten";
+                            editButton.addEventListener("click", () => openEditFinanceModal(doc.id, finance));
+                            td.appendChild(editButton);
+                            break;
+                        default:
+                            td.textContent = "-";
+                    }
+                    tr.appendChild(td);
+                });
 
                 financesTable.appendChild(tr);
             });
@@ -320,65 +393,6 @@
             document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
         });
 
-        // Neue Spalte hinzufügen
-        const addColumnButton = document.getElementById("addColumnButton");
-        addColumnButton.addEventListener("click", () => {
-            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
-            if (newColumnName) {
-                const financeTableHeader = document.getElementById("financeTableHeader");
-                const newTh = document.createElement("th");
-                newTh.textContent = newColumnName;
-                financeTableHeader.insertBefore(newTh, financeTableHeader.lastElementChild);
-
-                const financeRows = document.querySelectorAll("#finances tr");
-                financeRows.forEach((row) => {
-                    const newTd = document.createElement("td");
-                    newTd.textContent = "-"; // Platzhalterwert
-                    row.insertBefore(newTd, row.lastElementChild);
-                });
-            }
-        });
-
-        // Spalte umbenennen
-        const renameColumnButton = document.getElementById("renameColumnButton");
-        renameColumnButton.addEventListener("click", () => {
-            const columnToRename = prompt("Geben Sie die aktuelle Spaltenüberschrift ein, die Sie umbenennen möchten:");
-            const newColumnName = prompt("Geben Sie den neuen Namen der Spalte ein:");
-            if (columnToRename && newColumnName) {
-                const headers = document.querySelectorAll("#financeTableHeader th");
-                headers.forEach((header) => {
-                    if (header.textContent === columnToRename) {
-                        header.textContent = newColumnName;
-                    }
-                });
-            }
-        });
-
-        // Spalte löschen
-        const deleteColumnButton = document.getElementById("deleteColumnButton");
-        deleteColumnButton.addEventListener("click", () => {
-            const columnToDelete = prompt("Geben Sie die Spaltenüberschrift ein, die Sie löschen möchten:");
-            if (columnToDelete) {
-                const headers = document.querySelectorAll("#financeTableHeader th");
-                let columnIndex = -1;
-                headers.forEach((header, index) => {
-                    if (header.textContent === columnToDelete) {
-                        columnIndex = index;
-                        header.remove();
-                    }
-                });
-
-                if (columnIndex > -1) {
-                    const financeRows = document.querySelectorAll("#finances tr");
-                    financeRows.forEach((row) => {
-                        const cells = row.querySelectorAll("td");
-                        if (cells[columnIndex]) {
-                            cells[columnIndex].remove();
-                        }
-                    });
-                }
-            }
-        });
     </script>
 </body>
 </html>
