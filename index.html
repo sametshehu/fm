@@ -270,7 +270,7 @@
             try {
                 console.log("Füge neues Mitglied hinzu...");
                 await membersCollection.add({ memberNumber, firstName, lastName, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, firstName, lastName, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -338,6 +338,7 @@
                     financeQuery.forEach((financeDoc) => {
                         const financeData = financeDoc.data();
                         if (
+                            financeData.note &&
                             financeData.note.toLowerCase().includes(member.firstName.toLowerCase()) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
                             financeData.note.toLowerCase().includes(member.lastName.toLowerCase()) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
                             financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
@@ -403,6 +404,7 @@
             const city = document.getElementById("editCity").value;
             try {
                 await membersCollection.doc(currentEditMemberId).update({ memberNumber, firstName, lastName, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich aktualisiert: ", { memberNumber, firstName, lastName, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
@@ -414,53 +416,12 @@
             if (currentEditMemberId) {
                 try {
                     await membersCollection.doc(currentEditMemberId).delete();
+                    console.log("Mitglied erfolgreich gelöscht: ", currentEditMemberId);
                     editMemberModal.style.display = "none";
                 } catch (error) {
                     console.error("Fehler beim Löschen des Mitglieds: ", error);
                 }
             }
-        });
-
-        // Mitglieder exportieren (Excel)
-        document.getElementById("exportButton").addEventListener("click", async () => {
-            try {
-                const snapshot = await membersCollection.get();
-                const members = [];
-                snapshot.forEach((doc) => {
-                    members.push(doc.data());
-                });
-
-                const worksheet = XLSX.utils.json_to_sheet(members);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
-                XLSX.writeFile(workbook, "mitglieder.xlsx");
-            } catch (error) {
-                console.error("Fehler beim Exportieren der Mitglieder: ", error);
-            }
-        });
-
-        // Mitglieder importieren (Excel)
-        document.getElementById("importFile").addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const members = XLSX.utils.sheet_to_json(worksheet);
-
-                for (const member of members) {
-                    try {
-                        await membersCollection.add(member);
-                    } catch (error) {
-                        console.error("Fehler beim Importieren des Mitglieds: ", error);
-                    }
-                }
-            };
-            reader.readAsArrayBuffer(file);
         });
     </script>
 </body>
