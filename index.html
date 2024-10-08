@@ -122,7 +122,7 @@
             background-color: #c82333;
         }
 
-        #openAddModalButton {
+        #openAddModalButton, #manageColumnsButton {
             width: calc(100% - 40px);
             max-width: 500px;
             padding: 10px;
@@ -135,7 +135,7 @@
             cursor: pointer;
         }
 
-        #openAddModalButton:hover {
+        #openAddModalButton:hover, #manageColumnsButton:hover {
             background-color: #0056b3;
         }
 
@@ -203,7 +203,18 @@
         </div>
     </div>
 
+    <!-- Spaltenverwaltung Modal -->
+    <div id="manageColumnsModal" class="filter-modal">
+        <div class="filter-modal-content">
+            <span id="closeManageColumnsModal" class="close">&times;</span>
+            <h2>Spaltenverwaltung</h2>
+            <div id="columnsOptions"></div>
+            <button id="saveColumnsButton">Speichern</button>
+        </div>
+    </div>
+
     <button id="openAddModalButton">Neues Mitglied hinzufügen</button>
+    <button id="manageColumnsButton">Spalten verwalten</button>
     <button id="exportButton">Mitglieder exportieren (Excel)</button>
     <input type="file" id="importFile" accept=".xlsx, .xls" />
 
@@ -213,22 +224,7 @@
         <div class="loading" id="loadingMessage">Lade Mitglieder...</div>
         <table id="membersTable">
             <thead>
-                <tr>
-                    <th data-column="memberNumber">Mitgliedsnummer</th>
-                    <th data-column="vorname">Vorname</th>
-                    <th data-column="nachname">Nachname</th>
-                    <th data-column="email">Email</th>
-                    <th data-column="phone">Telefonnummer</th>
-                    <th data-column="address">Adresse</th>
-                    <th data-column="zip">PLZ</th>
-                    <th data-column="city">Ort</th>
-                    <th data-column="2022">2022</th>
-                    <th data-column="2023">2023</th>
-                    <th data-column="2024">2024</th>
-                    <th data-column="2025">2025</th>
-                    <th data-column="2026">2026</th>
-                    <th>Aktionen</th>
-                </tr>
+                <tr id="membersTableHeader"></tr>
             </thead>
             <tbody id="members"></tbody>
         </table>
@@ -272,7 +268,32 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const membersCollection = db.collection("members");
-        const financeCollection = db.collection("finances");
+        const columnsCollection = db.collection("columns");
+
+        let columns = [];
+
+        // Spalten laden und Tabelle aktualisieren
+        async function loadColumns() {
+            const snapshot = await columnsCollection.get();
+            columns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            renderTableHeader();
+            loadMembers();
+        }
+
+        // Tabelle mit Spaltenüberschriften rendern
+        function renderTableHeader() {
+            const headerRow = document.getElementById("membersTableHeader");
+            headerRow.innerHTML = "";
+            columns.forEach(column => {
+                const th = document.createElement("th");
+                th.textContent = column.name;
+                th.setAttribute("data-column", column.id);
+                headerRow.appendChild(th);
+            });
+            const actionsTh = document.createElement("th");
+            actionsTh.textContent = "Aktionen";
+            headerRow.appendChild(actionsTh);
+        }
 
         // Neues Mitglied hinzufügen - Modal öffnen
         const addMemberModal = document.getElementById("addMemberModal");
@@ -291,18 +312,15 @@
         const addMemberForm = document.getElementById("addMemberForm");
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const memberNumber = document.getElementById("addMemberNumber").value;
-            const vorname = document.getElementById("addVorname").value;
-            const nachname = document.getElementById("addNachname").value;
-            const email = document.getElementById("addEmail").value;
-            const phone = document.getElementById("addPhone").value;
-            const address = document.getElementById("addAddress").value;
-            const zip = document.getElementById("addZip").value;
-            const city = document.getElementById("addCity").value;
+            const memberData = {};
+            columns.forEach(column => {
+                const value = document.getElementById(`add${column.id}`).value;
+                memberData[column.id] = value;
+            });
             try {
                 console.log("Füge neues Mitglied hinzu...");
-                await membersCollection.add({ memberNumber, vorname, nachname, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, vorname, nachname, email, phone, address, zip, city });
+                await membersCollection.add(memberData);
+                console.log("Mitglied erfolgreich hinzugefügt: ", memberData);
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -313,8 +331,8 @@
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
         console.log("Höre auf Änderungen in der Mitglieder-Collection...");
-        membersCollection.onSnapshot((snapshot) => {
-            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
+        async function loadMembers() {
+            const snapshot = await membersCollection.get();
             if (snapshot.empty) {
                 console.log("Keine Mitglieder in der Datenbank vorhanden.");
                 document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
@@ -323,72 +341,16 @@
 
             membersTable.innerHTML = "";
             document.getElementById("loadingMessage").style.display = "none";
-            snapshot.forEach(async (doc) => {
+            snapshot.forEach(doc => {
                 const member = doc.data();
-                console.log("Mitgliedsdaten erhalten:", doc.id, member);
-
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
-                const memberNumberTd = document.createElement("td");
-                memberNumberTd.textContent = member.memberNumber;
-                tr.appendChild(memberNumberTd);
-
-                const vornameTd = document.createElement("td");
-                vornameTd.textContent = member.vorname;
-                tr.appendChild(vornameTd);
-
-                const nachnameTd = document.createElement("td");
-                nachnameTd.textContent = member.nachname;
-                tr.appendChild(nachnameTd);
-
-                const emailTd = document.createElement("td");
-                emailTd.textContent = member.email;
-                tr.appendChild(emailTd);
-
-                const phoneTd = document.createElement("td");
-                phoneTd.textContent = member.phone;
-                tr.appendChild(phoneTd);
-
-                const addressTd = document.createElement("td");
-                addressTd.textContent = member.address;
-                tr.appendChild(addressTd);
-
-                const zipTd = document.createElement("td");
-                zipTd.textContent = member.zip;
-                tr.appendChild(zipTd);
-
-                const cityTd = document.createElement("td");
-                cityTd.textContent = member.city;
-                tr.appendChild(cityTd);
-
-                const years = [2022, 2023, 2024, 2025, 2026];
-                for (const year of years) {
-    const paymentTd = document.createElement("td");
-    let totalPayment = 0;
-    const financeQuery = await financeCollection.get();
-    financeQuery.forEach((financeDoc) => {
-        const financeData = financeDoc.data();
-        
-        // Überprüfen, ob vorname und nachname definiert sind, bevor toLowerCase angewendet wird
-        const vorname = member.vorname ? member.vorname.toLowerCase() : "";
-        const nachname = member.nachname ? member.nachname.toLowerCase() : "";
-        const note = financeData.note ? financeData.note.toLowerCase() : "";
-
-        if (
-            note.includes(vorname) && // Unabhängig von Groß-/Kleinschreibung prüfen
-            note.includes(nachname) && // Unabhängig von Groß-/Kleinschreibung prüfen
-            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
-        ) {
-            if (financeData.category === "Mitgliederbeitrag") {
-                totalPayment += parseFloat(financeData.amount);
-            }
-        }
-    });
-
-    paymentTd.textContent = totalPayment;
-    tr.appendChild(paymentTd);
-}
+                columns.forEach(column => {
+                    const td = document.createElement("td");
+                    td.textContent = member[column.id] || "";
+                    tr.appendChild(td);
+                });
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
@@ -399,10 +361,7 @@
 
                 membersTable.appendChild(tr);
             });
-        }, (error) => {
-            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
-            document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
-        });
+        }
 
         // Bearbeiten-Modul öffnen
         const editMemberModal = document.getElementById("editMemberModal");
@@ -413,14 +372,9 @@
 
         function openEditModal(id, member) {
             currentEditMemberId = id;
-            document.getElementById("editMemberNumber").value = member.memberNumber;
-            document.getElementById("editVorname").value = member.vorname;
-            document.getElementById("editNachname").value = member.nachname;
-            document.getElementById("editEmail").value = member.email;
-            document.getElementById("editPhone").value = member.phone;
-            document.getElementById("editAddress").value = member.address;
-            document.getElementById("editZip").value = member.zip;
-            document.getElementById("editCity").value = member.city;
+            columns.forEach(column => {
+                document.getElementById(`edit${column.id}`).value = member[column.id] || "";
+            });
             editMemberModal.style.display = "block";
         }
 
@@ -431,16 +385,12 @@
         // Mitglied bearbeiten
         editMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const memberNumber = document.getElementById("editMemberNumber").value;
-            const vorname = document.getElementById("editVorname").value;
-            const nachname = document.getElementById("editNachname").value;
-            const email = document.getElementById("editEmail").value;
-            const phone = document.getElementById("editPhone").value;
-            const address = document.getElementById("editAddress").value;
-            const zip = document.getElementById("editZip").value;
-            const city = document.getElementById("editCity").value;
+            const updatedData = {};
+            columns.forEach(column => {
+                updatedData[column.id] = document.getElementById(`edit${column.id}`).value;
+            });
             try {
-                await membersCollection.doc(currentEditMemberId).update({ memberNumber, vorname, nachname, email, phone, address, zip, city });
+                await membersCollection.doc(currentEditMemberId).update(updatedData);
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
@@ -459,84 +409,54 @@
             }
         });
 
-        // Mitglieder exportieren (Excel)
-        document.getElementById("exportButton").addEventListener("click", async () => {
-            try {
-                const snapshot = await membersCollection.get();
-                const members = [];
-                snapshot.forEach((doc) => {
-                    members.push(doc.data());
-                });
+        // Spalten verwalten - Modal öffnen
+        const manageColumnsModal = document.getElementById("manageColumnsModal");
+        const manageColumnsButton = document.getElementById("manageColumnsButton");
+        const closeManageColumnsModal = document.getElementById("closeManageColumnsModal");
+        const saveColumnsButton = document.getElementById("saveColumnsButton");
 
-                const worksheet = XLSX.utils.json_to_sheet(members);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
-                XLSX.writeFile(workbook, "mitglieder.xlsx");
-            } catch (error) {
-                console.error("Fehler beim Exportieren der Mitglieder: ", error);
-            }
-        });
-
-        // Mitglieder importieren (Excel)
-        document.getElementById("importFile").addEventListener("change", async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async (event) => {
-                const data = new Uint8Array(event.target.result);
-                const workbook = XLSX.read(data, { type: "array" });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const members = XLSX.utils.sheet_to_json(worksheet);
-
-                for (const member of members) {
-                    try {
-                        await membersCollection.add(member);
-                    } catch (error) {
-                        console.error("Fehler beim Importieren des Mitglieds: ", error);
-                    }
-                }
-            };
-            reader.readAsArrayBuffer(file);
-        });
-
-        // Filterfunktion öffnen
-        const filterModal = document.getElementById("filterModal");
-        const closeFilterModal = document.getElementById("closeFilterModal");
-        const applyFilterButton = document.getElementById("applyFilterButton");
-        let currentFilterColumn = null;
-
-        document.querySelectorAll(".members-list th[data-column]").forEach(th => {
-            th.addEventListener("click", () => {
-                currentFilterColumn = th.dataset.column;
-                document.getElementById("filterOptions").innerHTML = `
-                    <label for="filterValue">Filterwert:</label>
-                    <input type="text" id="filterValue" placeholder="Wert eingeben">
+        manageColumnsButton.addEventListener("click", () => {
+            const columnsOptions = document.getElementById("columnsOptions");
+            columnsOptions.innerHTML = "";
+            columns.forEach(column => {
+                const div = document.createElement("div");
+                div.innerHTML = `
+                    <input type="checkbox" id="column_${column.id}" checked>
+                    <label for="column_${column.id}">${column.name}</label>
                 `;
-                filterModal.style.display = "block";
+                columnsOptions.appendChild(div);
             });
+            manageColumnsModal.style.display = "block";
         });
 
-        closeFilterModal.addEventListener("click", () => {
-            filterModal.style.display = "none";
+        closeManageColumnsModal.addEventListener("click", () => {
+            manageColumnsModal.style.display = "none";
         });
 
-        applyFilterButton.addEventListener("click", () => {
-            const filterValue = document.getElementById("filterValue").value.toLowerCase();
-            if (currentFilterColumn) {
-                const rows = membersTable.querySelectorAll("tr");
-                rows.forEach(row => {
-                    const cell = row.querySelector(`td:nth-child(${[...document.querySelectorAll(".members-list th")].findIndex(th => th.dataset.column === currentFilterColumn) + 1})`);
-                    if (cell && !cell.textContent.toLowerCase().includes(filterValue)) {
-                        row.style.display = "none";
-                    } else {
-                        row.style.display = "";
-                    }
-                });
-            }
-            filterModal.style.display = "none";
+        saveColumnsButton.addEventListener("click", async () => {
+            const selectedColumns = [];
+            columns.forEach(column => {
+                if (document.getElementById(`column_${column.id}`).checked) {
+                    selectedColumns.push(column);
+                }
+            });
+            // Update columns collection in Firebase (for simplicity, replace all columns)
+            const batch = db.batch();
+            columns.forEach(column => {
+                const columnRef = columnsCollection.doc(column.id);
+                batch.delete(columnRef);
+            });
+            selectedColumns.forEach(column => {
+                const columnRef = columnsCollection.doc(column.id);
+                batch.set(columnRef, { name: column.name });
+            });
+            await batch.commit();
+            manageColumnsModal.style.display = "none";
+            loadColumns();
         });
+
+        // Initial Load
+        loadColumns();
     </script>
 </body>
 </html>
