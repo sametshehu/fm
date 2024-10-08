@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Moschee Drita - Mitgliederverwaltung</title>
+    <title>Moschee Drita - Finanzverwaltung</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -26,7 +28,7 @@
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        form input {
+        form input, form select {
             width: calc(100% - 22px);
             padding: 10px;
             margin: 10px 0;
@@ -48,7 +50,7 @@
             background-color: #218838;
         }
 
-        .members-list {
+        .finance-list {
             max-width: 100%;
             margin: 20px auto;
             background: #ffffff;
@@ -58,12 +60,12 @@
             overflow-x: auto;
         }
 
-        .members-list table {
+        .finance-list table {
             width: 100%;
             border-collapse: collapse;
         }
 
-        .members-list th, .members-list td {
+        .finance-list th, .finance-list td {
             padding: 10px;
             border: 1px solid #ddd;
             text-align: left;
@@ -121,7 +123,7 @@
             background-color: #c82333;
         }
 
-        #openAddModalButton {
+        #openAddFinanceModalButton {
             width: calc(100% - 40px);
             max-width: 500px;
             padding: 10px;
@@ -134,7 +136,7 @@
             cursor: pointer;
         }
 
-        #openAddModalButton:hover {
+        #openAddFinanceModalButton:hover {
             background-color: #0056b3;
         }
 
@@ -150,319 +152,314 @@
         <a href="index.html">Mitgliederverwaltung</a> |
         <a href="finanzen.html">Finanzverwaltung</a>
     </nav>
-    <h1>Moschee Drita - Mitgliederverwaltung</h1>
-    
-    <!-- Modal zum Hinzufügen eines Mitglieds -->
-    <div id="addMemberModal" class="modal" style="display: none;">
+    <h1>Moschee Drita - Finanzverwaltung</h1>
+
+    <!-- Modal zum Hinzufügen einer Finanztransaktion -->
+    <div id="addFinanceModal" class="modal" style="display: none;">
         <div class="modal-content">
-            <span id="closeAddModal" class="close">&times;</span>
-            <h2>Neues Mitglied hinzufügen</h2>
-            <form id="addMemberForm">
-                <input type="text" id="addMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="addVorname" placeholder="Vorname" required>
-                <input type="text" id="addNachname" placeholder="Nachname" required>
-                <input type="email" id="addEmail" placeholder="Email">
-                <input type="text" id="addPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
-                <input type="text" id="addAddress" placeholder="Adresse">
-                <input type="text" id="addZip" placeholder="PLZ">
-                <input type="text" id="addCity" placeholder="Ort">
+            <span id="closeAddFinanceModal" class="close">&times;</span>
+            <h2>Neue Finanztransaktion hinzufügen</h2>
+            <form id="addFinanceForm">
+                <input type="date" id="financeDate" placeholder="Datum" required>
+                <select id="financeCategory" required>
+                    <option value="">Kategorie auswählen</option>
+                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
+                    <option value="Lohn">Lohn</option>
+                    <option value="Rechnung">Rechnung</option>
+                </select>
+                <input type="text" id="financeNote" placeholder="Bemerkung" required>
+                <input type="number" id="financeAmount" placeholder="Betrag" required>
+                <input type="number" id="financeYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
+                <select id="financeType" required>
+                    <option value="">Ausgaben/Einnahmen auswählen</option>
+                    <option value="Ausgaben">Ausgaben</option>
+                    <option value="Einnahmen">Einnahmen</option>
+                </select>
+                <select id="financeAccount" required>
+                    <option value="">Konto auswählen</option>
+                    <option value="Konto 05">Konto 05</option>
+                    <option value="Konto 03">Konto 03</option>
+                    <option value="Bar">Bar</option>
+                </select>
                 <button type="submit">Hinzufügen</button>
             </form>
         </div>
     </div>
 
-    <button id="openAddModalButton">Neues Mitglied hinzufügen</button>
-    <button id="exportButton">Mitglieder exportieren (Excel)</button>
-    <input type="file" id="importFile" accept=".xlsx, .xls" />
+    <button id="openAddFinanceModalButton">Neue Finanztransaktion hinzufügen</button>
+    <button id="exportFinanceButton">Finanzen exportieren (Excel)</button>
+    <button id="addColumnButton">Neue Spalte hinzufügen</button>
+    <input type="file" id="importFinanceFile" accept=".xlsx, .xls" />
 
-    <!-- Mitgliederliste -->
-    <div class="members-list">
-        <h2>Mitgliederliste</h2>
-        <div class="loading" id="loadingMessage">Lade Mitglieder...</div>
-        <table id="membersTable">
+    <!-- Finanzliste -->
+    <div class="finance-list">
+        <h2>Finanztransaktionen</h2>
+        <div class="loading" id="loadingFinanceMessage">Lade Finanztransaktionen...</div>
+        <table id="financesTable">
             <thead>
-                <tr>
-                    <th>Mitgliedsnummer</th>
-                    <th>Vorname</th>
-                    <th>Nachname</th>
-                    <th>Email</th>
-                    <th>Telefonnummer</th>
-                    <th>Adresse</th>
-                    <th>PLZ</th>
-                    <th>Ort</th>
-                    <th>2022</th>
-                    <th>2023</th>
-                    <th>2024</th>
-                    <th>2025</th>
-                    <th>2026</th>
+                <tr id="financeTableHeader">
+                    <th>Datum</th>
+                    <th>Kategorie</th>
+                    <th>Bemerkung</th>
+                    <th>Betrag</th>
+                    <th>Mitgl. Beitrag Jahr</th>
+                    <th>Typ</th>
+                    <th>Konto</th>
                     <th>Aktionen</th>
                 </tr>
             </thead>
-            <tbody id="members"></tbody>
+            <tbody id="finances"></tbody>
         </table>
     </div>
 
-    <!-- Modal zum Bearbeiten eines Mitglieds -->
-    <div id="editMemberModal" class="modal" style="display: none;">
+    <!-- Modal zum Bearbeiten einer Finanztransaktion -->
+    <div id="editFinanceModal" class="modal" style="display: none;">
         <div class="modal-content">
-            <span id="closeModal" class="close">&times;</span>
-            <h2>Mitglied bearbeiten</h2>
-            <form id="editMemberForm">
-                <input type="text" id="editMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="editVorname" placeholder="Vorname" required>
-                <input type="text" id="editNachname" placeholder="Nachname" required>
-                <input type="email" id="editEmail" placeholder="Email">
-                <input type="text" id="editPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
-                <input type="text" id="editAddress" placeholder="Adresse">
-                <input type="text" id="editZip" placeholder="PLZ">
-                <input type="text" id="editCity" placeholder="Ort">
+            <span id="closeEditFinanceModal" class="close">&times;</span>
+            <h2>Finanztransaktion bearbeiten</h2>
+            <form id="editFinanceForm">
+                <input type="date" id="editFinanceDate" placeholder="Datum" required>
+                <select id="editFinanceCategory" required>
+                    <option value="">Kategorie auswählen</option>
+                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
+                    <option value="Lohn">Lohn</option>
+                    <option value="Rechnung">Rechnung</option>
+                </select>
+                <input type="text" id="editFinanceNote" placeholder="Bemerkung" required>
+                <input type="number" id="editFinanceAmount" placeholder="Betrag" required>
+                <input type="number" id="editFinanceYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
+                <select id="editFinanceType" required>
+                    <option value="">Ausgaben/Einnahmen auswählen</option>
+                    <option value="Ausgaben">Ausgaben</option>
+                    <option value="Einnahmen">Einnahmen</option>
+                </select>
+                <select id="editFinanceAccount" required>
+                    <option value="">Konto auswählen</option>
+                    <option value="Konto 05">Konto 05</option>
+                    <option value="Konto 03">Konto 03</option>
+                    <option value="Bar">Bar</option>
+                </select>
                 <button type="submit">Speichern</button>
             </form>
-            <button id="deleteMemberButton" class="delete-button">Löschen</button>
+            <button id="deleteFinanceButton" class="delete-button">Löschen</button>
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase Konfiguration und Initialisierung -->
+    <script src="firebaseConfig.js"></script>
     <script>
-        // Firebase-Konfiguration
-        const firebaseConfig = {
-          apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
-          authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
-          projectId: "mitgliederverwaltung-3458b",
-          storageBucket: "mitgliederverwaltung-3458b.appspot.com",
-          messagingSenderId: "916656812587",
-          appId: "1:916656812587:web:23b510f805c800f62af06e"
-        };
-
         // Firebase initialisieren
-        console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const membersCollection = db.collection("members");
         const financeCollection = db.collection("finances");
 
-        // Neues Mitglied hinzufügen - Modal öffnen
-        const addMemberModal = document.getElementById("addMemberModal");
-        const openAddModalButton = document.getElementById("openAddModalButton");
-        const closeAddModal = document.getElementById("closeAddModal");
+        // Neues Finanzdatensatz hinzufügen - Modal öffnen
+        const addFinanceModal = document.getElementById("addFinanceModal");
+        const openAddFinanceModalButton = document.getElementById("openAddFinanceModalButton");
+        const closeAddFinanceModal = document.getElementById("closeAddFinanceModal");
 
-        openAddModalButton.addEventListener("click", () => {
-            addMemberModal.style.display = "block";
+        openAddFinanceModalButton.addEventListener("click", () => {
+            addFinanceModal.style.display = "block";
         });
 
-        closeAddModal.addEventListener("click", () => {
-            addMemberModal.style.display = "none";
+        closeAddFinanceModal.addEventListener("click", () => {
+            addFinanceModal.style.display = "none";
         });
 
-        // Neues Mitglied hinzufügen
-        const addMemberForm = document.getElementById("addMemberForm");
-        addMemberForm.addEventListener("submit", async (e) => {
+        // Neues Finanzdatensatz hinzufügen
+        const addFinanceForm = document.getElementById("addFinanceForm");
+        addFinanceForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const memberNumber = document.getElementById("addMemberNumber").value;
-            const vorname = document.getElementById("addVorname").value;
-            const nachname = document.getElementById("addNachname").value;
-            const email = document.getElementById("addEmail").value;
-            const phone = document.getElementById("addPhone").value;
-            const address = document.getElementById("addAddress").value;
-            const zip = document.getElementById("addZip").value;
-            const city = document.getElementById("addCity").value;
+            const date = document.getElementById("financeDate").value;
+            const category = document.getElementById("financeCategory").value;
+            const note = document.getElementById("financeNote").value;
+            const amount = parseFloat(document.getElementById("financeAmount").value);
+            const yearlyFee = parseFloat(document.getElementById("financeYearlyFee").value);
+            const type = document.getElementById("financeType").value;
+            const account = document.getElementById("financeAccount").value;
             try {
-                console.log("Füge neues Mitglied hinzu...");
-                await membersCollection.add({ memberNumber, vorname, nachname, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, vorname, nachname, email, phone, address, zip, city });
-                addMemberForm.reset();
-                addMemberModal.style.display = "none";
+                await financeCollection.add({ date, category, note, amount, yearlyFee, type, account });
+                addFinanceForm.reset();
+                addFinanceModal.style.display = "none";
             } catch (error) {
-                console.error("Fehler beim Hinzufügen des Mitglieds: ", error);
+                console.error("Fehler beim Hinzufügen des Finanzdatensatzes: ", error);
             }
         });
 
-        // Mitgliederliste anzeigen
-        const membersTable = document.getElementById("members");
-        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
-        membersCollection.onSnapshot((snapshot) => {
-            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
+        // Finanzliste anzeigen
+        const financesTable = document.getElementById("finances");
+        financeCollection.onSnapshot((snapshot) => {
             if (snapshot.empty) {
-                console.log("Keine Mitglieder in der Datenbank vorhanden.");
-                document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
+                document.getElementById("loadingFinanceMessage").textContent = "Keine Finanztransaktionen gefunden.";
                 return;
             }
 
-            membersTable.innerHTML = "";
-            document.getElementById("loadingMessage").style.display = "none";
-            snapshot.forEach(async (doc) => {
-                const member = doc.data();
-                console.log("Mitgliedsdaten erhalten:", doc.id, member);
-
+            financesTable.innerHTML = "";
+            document.getElementById("loadingFinanceMessage").style.display = "none";
+            snapshot.forEach((doc) => {
+                const finance = doc.data();
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
-                const memberNumberTd = document.createElement("td");
-                memberNumberTd.textContent = member.memberNumber;
-                tr.appendChild(memberNumberTd);
+                const dateTd = document.createElement("td");
+                dateTd.textContent = finance.date;
+                tr.appendChild(dateTd);
 
-                const vornameTd = document.createElement("td");
-                vornameTd.textContent = member.vorname;
-                tr.appendChild(vornameTd);
+                const categoryTd = document.createElement("td");
+                categoryTd.textContent = finance.category;
+                tr.appendChild(categoryTd);
 
-                const nachnameTd = document.createElement("td");
-                nachnameTd.textContent = member.nachname;
-                tr.appendChild(nachnameTd);
+                const noteTd = document.createElement("td");
+                noteTd.textContent = finance.note;
+                tr.appendChild(noteTd);
 
-                const emailTd = document.createElement("td");
-                emailTd.textContent = member.email;
-                tr.appendChild(emailTd);
+                const amountTd = document.createElement("td");
+                amountTd.textContent = finance.amount;
+                tr.appendChild(amountTd);
 
-                const phoneTd = document.createElement("td");
-                phoneTd.textContent = member.phone;
-                tr.appendChild(phoneTd);
+                const yearlyFeeTd = document.createElement("td");
+                yearlyFeeTd.textContent = finance.yearlyFee;
+                tr.appendChild(yearlyFeeTd);
 
-                const addressTd = document.createElement("td");
-                addressTd.textContent = member.address;
-                tr.appendChild(addressTd);
+                const typeTd = document.createElement("td");
+                typeTd.textContent = finance.type;
+                tr.appendChild(typeTd);
 
-                const zipTd = document.createElement("td");
-                zipTd.textContent = member.zip;
-                tr.appendChild(zipTd);
+                const accountTd = document.createElement("td");
+                accountTd.textContent = finance.account;
+                tr.appendChild(accountTd);
 
-                const cityTd = document.createElement("td");
-                cityTd.textContent = member.city;
-                tr.appendChild(cityTd);
-
-                const years = [2022, 2023, 2024, 2025, 2026];
-for (const year of years) {
-    const paymentTd = document.createElement("td");
-    let totalPayment = 0;
-    const financeQuery = await financeCollection.get();
-    financeQuery.forEach((financeDoc) => {
-        const financeData = financeDoc.data();
-        
-        // Überprüfen, ob vorname und nachname definiert sind, bevor toLowerCase angewendet wird
-        const vorname = member.vorname ? member.vorname.toLowerCase() : "";
-        const nachname = member.nachname ? member.nachname.toLowerCase() : "";
-        const note = financeData.note ? financeData.note.toLowerCase() : "";
-
-        if (
-            note.includes(vorname) && // Unabhängig von Groß-/Kleinschreibung prüfen
-            note.includes(nachname) && // Unabhängig von Groß-/Kleinschreibung prüfen
-            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
-        ) {
-            if (financeData.category === "Mitgliederbeitrag") {
-                totalPayment += parseFloat(financeData.amount);
-            }
-        }
-    });
-
-    paymentTd.textContent = totalPayment;
-    tr.appendChild(paymentTd);
-}
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
                 editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditModal(doc.id, member));
+                editButton.addEventListener("click", () => openEditFinanceModal(doc.id, finance));
                 actionsTd.appendChild(editButton);
                 tr.appendChild(actionsTd);
 
-                membersTable.appendChild(tr);
+                financesTable.appendChild(tr);
             });
         }, (error) => {
-            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
-            document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
+            console.error("Fehler beim Abrufen der Finanztransaktionen: ", error);
+            document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
         });
 
-        // Bearbeiten-Modul öffnen
-        const editMemberModal = document.getElementById("editMemberModal");
-        const closeModal = document.getElementById("closeModal");
-        const editMemberForm = document.getElementById("editMemberForm");
-        const deleteMemberButton = document.getElementById("deleteMemberButton");
-        let currentEditMemberId = null;
+        // Neue Spalte hinzufügen
+        const addColumnButton = document.getElementById("addColumnButton");
+        addColumnButton.addEventListener("click", () => {
+            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
+            if (newColumnName) {
+                const financeTableHeader = document.getElementById("financeTableHeader");
+                const newTh = document.createElement("th");
+                newTh.textContent = newColumnName;
+                financeTableHeader.insertBefore(newTh, financeTableHeader.lastElementChild);
 
-        function openEditModal(id, member) {
-            currentEditMemberId = id;
-            document.getElementById("editMemberNumber").value = member.memberNumber;
-            document.getElementById("editVorname").value = member.vorname;
-            document.getElementById("editNachname").value = member.nachname;
-            document.getElementById("editEmail").value = member.email;
-            document.getElementById("editPhone").value = member.phone;
-            document.getElementById("editAddress").value = member.address;
-            document.getElementById("editZip").value = member.zip;
-            document.getElementById("editCity").value = member.city;
-            editMemberModal.style.display = "block";
-        }
-
-        closeModal.addEventListener("click", () => {
-            editMemberModal.style.display = "none";
-        });
-
-        // Mitglied bearbeiten
-        editMemberForm.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const memberNumber = document.getElementById("editMemberNumber").value;
-            const vorname = document.getElementById("editVorname").value;
-            const nachname = document.getElementById("editNachname").value;
-            const email = document.getElementById("editEmail").value;
-            const phone = document.getElementById("editPhone").value;
-            const address = document.getElementById("editAddress").value;
-            const zip = document.getElementById("editZip").value;
-            const city = document.getElementById("editCity").value;
-            try {
-                await membersCollection.doc(currentEditMemberId).update({ memberNumber, vorname, nachname, email, phone, address, zip, city });
-                editMemberModal.style.display = "none";
-            } catch (error) {
-                console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
+                const financeRows = document.querySelectorAll("#finances tr");
+                financeRows.forEach((row) => {
+                    const newTd = document.createElement("td");
+                    newTd.textContent = "-";
+                    row.insertBefore(newTd, row.lastElementChild);
+                });
             }
         });
 
-        // Mitglied löschen
-        deleteMemberButton.addEventListener("click", async () => {
-            if (currentEditMemberId) {
+        // Bearbeiten-Modul öffnen
+        const editFinanceModal = document.getElementById("editFinanceModal");
+        const closeEditFinanceModal = document.getElementById("closeEditFinanceModal");
+        const editFinanceForm = document.getElementById("editFinanceForm");
+        const deleteFinanceButton = document.getElementById("deleteFinanceButton");
+        let currentEditFinanceId = null;
+
+        function openEditFinanceModal(id, finance) {
+            currentEditFinanceId = id;
+            document.getElementById("editFinanceDate").value = finance.date;
+            document.getElementById("editFinanceCategory").value = finance.category;
+            document.getElementById("editFinanceNote").value = finance.note;
+            document.getElementById("editFinanceAmount").value = finance.amount;
+            document.getElementById("editFinanceYearlyFee").value = finance.yearlyFee;
+            document.getElementById("editFinanceType").value = finance.type;
+            document.getElementById("editFinanceAccount").value = finance.account;
+            editFinanceModal.style.display = "block";
+        }
+
+        closeEditFinanceModal.addEventListener("click", () => {
+            editFinanceModal.style.display = "none";
+        });
+
+        // Finanzdatensatz bearbeiten
+        editFinanceForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const date = document.getElementById("editFinanceDate").value;
+            const category = document.getElementById("editFinanceCategory").value;
+            const note = document.getElementById("editFinanceNote").value;
+            const amount = parseFloat(document.getElementById("editFinanceAmount").value);
+            const yearlyFee = parseFloat(document.getElementById("editFinanceYearlyFee").value);
+            const type = document.getElementById("editFinanceType").value;
+            const account = document.getElementById("editFinanceAccount").value;
+            try {
+                await financeCollection.doc(currentEditFinanceId).update({ date, category, note, amount, yearlyFee, type, account });
+                editFinanceModal.style.display = "none";
+            } catch (error) {
+                console.error("Fehler beim Aktualisieren des Finanzdatensatzes: ", error);
+            }
+        });
+
+        // Finanzdatensatz löschen
+        deleteFinanceButton.addEventListener("click", async () => {
+            if (currentEditFinanceId) {
                 try {
-                    await membersCollection.doc(currentEditMemberId).delete();
-                    editMemberModal.style.display = "none";
+                    await financeCollection.doc(currentEditFinanceId).delete();
+                    editFinanceModal.style.display = "none";
                 } catch (error) {
-                    console.error("Fehler beim Löschen des Mitglieds: ", error);
+                    console.error("Fehler beim Löschen des Finanzdatensatzes: ", error);
                 }
             }
         });
 
-        // Mitglieder exportieren (Excel)
-        document.getElementById("exportButton").addEventListener("click", async () => {
+        // Exportieren der Finanzdaten
+        document.getElementById("exportFinanceButton").addEventListener("click", async () => {
             try {
-                const snapshot = await membersCollection.get();
-                const members = [];
+                const snapshot = await financeCollection.get();
+                if (snapshot.empty) {
+                    alert("Keine Finanzdaten zum Exportieren vorhanden.");
+                    return;
+                }
+
+                const financeData = [];
                 snapshot.forEach((doc) => {
-                    members.push(doc.data());
+                    financeData.push(doc.data());
                 });
 
-                const worksheet = XLSX.utils.json_to_sheet(members);
+                const worksheet = XLSX.utils.json_to_sheet(financeData);
                 const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
-                XLSX.writeFile(workbook, "mitglieder.xlsx");
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzen");
+                XLSX.writeFile(workbook, "Finanzen.xlsx");
             } catch (error) {
-                console.error("Fehler beim Exportieren der Mitglieder: ", error);
+                console.error("Fehler beim Exportieren der Finanzdaten: ", error);
             }
         });
 
-        // Mitglieder importieren (Excel)
-        document.getElementById("importFile").addEventListener("change", async (e) => {
+        // Importieren der Finanzdaten
+        document.getElementById("importFinanceFile").addEventListener("change", async (e) => {
             const file = e.target.files[0];
-            if (!file) return;
+            if (!file) {
+                return;
+            }
 
             const reader = new FileReader();
-            reader.onload = async (event) => {
-                const data = new Uint8Array(event.target.result);
+            reader.onload = async (e) => {
+                const data = new Uint8Array(e.target.result);
                 const workbook = XLSX.read(data, { type: "array" });
-                const firstSheetName = workbook.SheetNames[0];
-                const worksheet = workbook.Sheets[firstSheetName];
-                const members = XLSX.utils.sheet_to_json(worksheet);
+                const sheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[sheetName];
+                const financeData = XLSX.utils.sheet_to_json(worksheet);
 
-                for (const member of members) {
-                    try {
-                        await membersCollection.add(member);
-                    } catch (error) {
-                        console.error("Fehler beim Importieren des Mitglieds: ", error);
+                try {
+                    for (const finance of financeData) {
+                        await financeCollection.add(finance);
                     }
+                    alert("Finanzdaten erfolgreich importiert.");
+                } catch (error) {
+                    console.error("Fehler beim Importieren der Finanzdaten: ", error);
                 }
             };
             reader.readAsArrayBuffer(file);
