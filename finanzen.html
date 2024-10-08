@@ -67,81 +67,34 @@
             padding: 10px;
             border: 1px solid #ddd;
             text-align: left;
+            position: relative;
+            cursor: pointer;
         }
 
-        /* Modal Styling */
-        .modal {
+        /* Kontextmenü */
+        .context-menu {
+            position: absolute;
+            background-color: #ffffff;
+            border: 1px solid #ccc;
+            padding: 10px;
             display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
 
-        .modal-content {
-            background-color: #fff;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 500px;
-            border-radius: 8px;
+        .context-menu ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
         }
 
-        .close {
-            color: #aaa;
-            float: right;
-            font-size: 28px;
-            font-weight: bold;
+        .context-menu ul li {
+            padding: 8px;
             cursor: pointer;
         }
 
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-
-        .delete-button {
-            background-color: #dc3545;
-            color: white;
-            border: none;
-            padding: 10px;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .delete-button:hover {
-            background-color: #c82333;
-        }
-
-        #openAddFinanceModalButton {
-            width: calc(100% - 40px);
-            max-width: 500px;
-            padding: 10px;
-            margin: 20px auto;
-            display: block;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-
-        #openAddFinanceModalButton:hover {
-            background-color: #0056b3;
-        }
-
-        .loading {
-            text-align: center;
-            font-size: 18px;
-            margin: 20px 0;
+        .context-menu ul li:hover {
+            background-color: #f4f4f4;
         }
     </style>
 </head>
@@ -152,40 +105,7 @@
     </nav>
     <h1>Moschee Drita - Finanzverwaltung</h1>
 
-    <!-- Modal zum Hinzufügen einer Finanztransaktion -->
-    <div id="addFinanceModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span id="closeAddFinanceModal" class="close">&times;</span>
-            <h2>Neue Finanztransaktion hinzufügen</h2>
-            <form id="addFinanceForm">
-                <input type="date" id="financeDate" placeholder="Datum" required>
-                <select id="financeCategory" required>
-                    <option value="">Kategorie auswählen</option>
-                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
-                    <option value="Lohn">Lohn</option>
-                    <option value="Rechnung">Rechnung</option>
-                </select>
-                <input type="text" id="financeNote" placeholder="Bemerkung" required>
-                <input type="number" id="financeAmount" placeholder="Betrag" required>
-                <input type="number" id="financeYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
-                <select id="financeType" required>
-                    <option value="">Ausgaben/Einnahmen auswählen</option>
-                    <option value="Ausgaben">Ausgaben</option>
-                    <option value="Einnahmen">Einnahmen</option>
-                </select>
-                <select id="financeAccount" required>
-                    <option value="">Konto auswählen</option>
-                    <option value="Konto 05">Konto 05</option>
-                    <option value="Konto 03">Konto 03</option>
-                    <option value="Bar">Bar</option>
-                </select>
-                <button type="submit">Hinzufügen</button>
-            </form>
-        </div>
-    </div>
-
     <button id="openAddFinanceModalButton">Neue Finanztransaktion hinzufügen</button>
-    <button id="exportFinanceButton">Finanzen exportieren (Excel)</button>
     <button id="addColumnButton">Neue Spalte hinzufügen</button>
     <input type="file" id="importFinanceFile" accept=".xlsx, .xls" />
 
@@ -210,42 +130,93 @@
         </table>
     </div>
 
-    <!-- Modal zum Bearbeiten einer Finanztransaktion -->
-    <div id="editFinanceModal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <span id="closeEditFinanceModal" class="close">&times;</span>
-            <h2>Finanztransaktion bearbeiten</h2>
-            <form id="editFinanceForm">
-                <input type="date" id="editFinanceDate" placeholder="Datum" required>
-                <select id="editFinanceCategory" required>
-                    <option value="">Kategorie auswählen</option>
-                    <option value="Mitgliederbeitrag">Mitgliederbeitrag</option>
-                    <option value="Lohn">Lohn</option>
-                    <option value="Rechnung">Rechnung</option>
-                </select>
-                <input type="text" id="editFinanceNote" placeholder="Bemerkung" required>
-                <input type="number" id="editFinanceAmount" placeholder="Betrag" required>
-                <input type="number" id="editFinanceYearlyFee" placeholder="Mitgliedsbeitrag für das Jahr" required>
-                <select id="editFinanceType" required>
-                    <option value="">Ausgaben/Einnahmen auswählen</option>
-                    <option value="Ausgaben">Ausgaben</option>
-                    <option value="Einnahmen">Einnahmen</option>
-                </select>
-                <select id="editFinanceAccount" required>
-                    <option value="">Konto auswählen</option>
-                    <option value="Konto 05">Konto 05</option>
-                    <option value="Konto 03">Konto 03</option>
-                    <option value="Bar">Bar</option>
-                </select>
-                <button type="submit">Speichern</button>
-            </form>
-            <button id="deleteFinanceButton" class="delete-button">Löschen</button>
-        </div>
+    <div class="context-menu" id="contextMenu">
+        <ul>
+            <li id="renameColumn">Spalte umbenennen</li>
+            <li id="deleteColumn">Spalte löschen</li>
+        </ul>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <script>
+        const db = firebase.firestore();
+        const financeCollection = db.collection("finances");
+        let selectedColumn = null;
+
+        // Spalte hinzufügen
+        const addColumnButton = document.getElementById("addColumnButton");
+        addColumnButton.addEventListener("click", () => {
+            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
+            if (newColumnName) {
+                const financeTableHeader = document.getElementById("financeTableHeader");
+                const newTh = document.createElement("th");
+                newTh.textContent = newColumnName;
+                financeTableHeader.insertBefore(newTh, financeTableHeader.lastElementChild);
+
+                const financeRows = document.querySelectorAll("#finances tr");
+                financeRows.forEach((row) => {
+                    const newTd = document.createElement("td");
+                    newTd.textContent = "-";
+                    row.insertBefore(newTd, row.lastElementChild);
+                });
+            }
+        });
+
+        // Event Listener für Spaltenüberschriften hinzufügen
+        const headerCells = document.querySelectorAll("#financeTableHeader th");
+        headerCells.forEach((headerCell, index) => {
+            headerCell.addEventListener("click", (event) => {
+                event.preventDefault();
+                selectedColumn = index; // Speichert den Index der angeklickten Spalte
+                showContextMenu(event.clientX, event.clientY);
+            });
+        });
+
+        // Kontextmenü anzeigen
+        function showContextMenu(x, y) {
+            const contextMenu = document.getElementById("contextMenu");
+            contextMenu.style.top = `${y}px`;
+            contextMenu.style.left = `${x}px`;
+            contextMenu.style.display = "block";
+        }
+
+        // Kontextmenü verstecken
+        window.addEventListener("click", () => {
+            const contextMenu = document.getElementById("contextMenu");
+            contextMenu.style.display = "none";
+        });
+
+        // Spalte umbenennen
+        const renameColumn = document.getElementById("renameColumn");
+        renameColumn.addEventListener("click", () => {
+            const newColumnName = prompt("Bitte geben Sie den neuen Namen der Spalte ein:");
+            if (newColumnName && selectedColumn !== null) {
+                const headerCells = document.querySelectorAll("#financeTableHeader th");
+                headerCells[selectedColumn].textContent = newColumnName;
+            }
+        });
+
+        // Spalte löschen
+        const deleteColumn = document.getElementById("deleteColumn");
+        deleteColumn.addEventListener("click", () => {
+            if (selectedColumn !== null) {
+                const headerCells = document.querySelectorAll("#financeTableHeader th");
+                if (headerCells[selectedColumn]) {
+                    headerCells[selectedColumn].remove();
+
+                    // Entferne die Spalte aus allen Datenreihen
+                    const financeRows = document.querySelectorAll("#finances tr");
+                    financeRows.forEach((row) => {
+                        const cells = row.querySelectorAll("td");
+                        if (cells[selectedColumn]) {
+                            cells[selectedColumn].remove();
+                        }
+                    });
+                }
+            }
+        });
+
         // Firebase-Konfiguration
         const firebaseConfig = {
           apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
