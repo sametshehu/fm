@@ -331,26 +331,28 @@
                 tr.appendChild(cityTd);
 
                 const years = [2022, 2023, 2024, 2025, 2026];
-                for (const year of years) {
-                    const paymentTd = document.createElement("td");
-                    let totalPayment = 0;
-                    const financeQuery = await financeCollection.get();
-                    financeQuery.forEach((financeDoc) => {
-                        const financeData = financeDoc.data();
-                        if (
-                            financeData.note.includes(member.vorname) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
-                            financeData.note.includes(member.nachname) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
-                            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
-                        ) {
-                            if (financeData.category === "Mitgliederbeitrag") {
-                                totalPayment += parseFloat(financeData.amount);
-                            }
-                        }
-                    });
+for (const year of years) {
+    const paymentTd = document.createElement("td");
+    let totalPayment = 0;
+    const financeQuery = await financeCollection.get();
+    financeQuery.forEach((financeDoc) => {
+        const financeData = financeDoc.data();
+        
+        // Konvertiere sowohl Vorname/Nachname als auch die Notiz in Kleinbuchstaben für den Vergleich
+        if (
+            financeData.note.toLowerCase().includes(member.vorname.toLowerCase()) && // Unabhängig von Groß-/Kleinschreibung prüfen
+            financeData.note.toLowerCase().includes(member.nachname.toLowerCase()) && // Unabhängig von Groß-/Kleinschreibung prüfen
+            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
+        ) {
+            if (financeData.category === "Mitgliederbeitrag") {
+                totalPayment += parseFloat(financeData.amount);
+            }
+        }
+    });
 
-                    paymentTd.textContent = totalPayment;
-                    tr.appendChild(paymentTd);
-                }
+    paymentTd.textContent = totalPayment;
+    tr.appendChild(paymentTd);
+}
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
