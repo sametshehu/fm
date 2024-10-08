@@ -268,9 +268,7 @@
             const zip = document.getElementById("addZip").value;
             const city = document.getElementById("addCity").value;
             try {
-                console.log("Füge neues Mitglied hinzu...");
                 await membersCollection.add({ memberNumber, firstName, lastName, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, firstName, lastName, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -280,21 +278,16 @@
 
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
-        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
         membersCollection.onSnapshot((snapshot) => {
-            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
-                console.log("Keine Mitglieder in der Datenbank vorhanden.");
                 document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
                 return;
             }
 
             membersTable.innerHTML = "";
             document.getElementById("loadingMessage").style.display = "none";
-            snapshot.forEach(async (doc) => {
+            snapshot.forEach((doc) => {
                 const member = doc.data();
-                console.log("Mitgliedsdaten erhalten:", doc.id, member);
-
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
@@ -330,40 +323,25 @@
                 cityTd.textContent = member.city;
                 tr.appendChild(cityTd);
 
-                const years = [2022, 2023, 2024, 2025, 2026];
-                for (const year of years) {
-                    const paymentTd = document.createElement("td");
-                    let totalPayment = 0;
-                    const financeQuery = await financeCollection.get();
-                    financeQuery.forEach((financeDoc) => {
-                        const financeData = financeDoc.data();
-                        if (
-                            financeData.note &&
-                            financeData.note.toLowerCase().includes(member.firstName.toLowerCase()) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
-                            financeData.note.toLowerCase().includes(member.lastName.toLowerCase()) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
-                            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
-                        ) {
-                            if (financeData.category === "Mitgliederbeitrag") {
-                                totalPayment += parseFloat(financeData.amount);
-                            }
-                        }
-                    });
-
-                    paymentTd.textContent = totalPayment;
-                    tr.appendChild(paymentTd);
-                }
+                // Jahresdaten hinzufügen
+                const years = ["2022", "2023", "2024", "2025", "2026"];
+                years.forEach((year) => {
+                    const yearTd = document.createElement("td");
+                    yearTd.textContent = member[year] || "-";
+                    tr.appendChild(yearTd);
+                });
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
                 editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditModal(doc.id, member));
+                editButton.addEventListener("click", () => openEditMemberModal(doc.id, member));
                 actionsTd.appendChild(editButton);
                 tr.appendChild(actionsTd);
 
                 membersTable.appendChild(tr);
             });
         }, (error) => {
-            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
+            console.error("Fehler beim Abrufen der Mitglieder: ", error);
             document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
         });
 
@@ -374,7 +352,7 @@
         const deleteMemberButton = document.getElementById("deleteMemberButton");
         let currentEditMemberId = null;
 
-        function openEditModal(id, member) {
+        function openEditMemberModal(id, member) {
             currentEditMemberId = id;
             document.getElementById("editMemberNumber").value = member.memberNumber;
             document.getElementById("editFirstName").value = member.firstName;
@@ -404,7 +382,6 @@
             const city = document.getElementById("editCity").value;
             try {
                 await membersCollection.doc(currentEditMemberId).update({ memberNumber, firstName, lastName, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich aktualisiert: ", { memberNumber, firstName, lastName, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
@@ -416,7 +393,6 @@
             if (currentEditMemberId) {
                 try {
                     await membersCollection.doc(currentEditMemberId).delete();
-                    console.log("Mitglied erfolgreich gelöscht: ", currentEditMemberId);
                     editMemberModal.style.display = "none";
                 } catch (error) {
                     console.error("Fehler beim Löschen des Mitglieds: ", error);
