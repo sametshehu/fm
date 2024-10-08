@@ -193,7 +193,8 @@
                     <th>2024</th>
                     <th>2025</th>
                     <th>2026</th>
-                    <th>Aktionen</th>
+                    <th>Bearbeiten</th> <!-- Neue Spalte Bearbeiten -->
+                    <th>Löschen</th> <!-- Neue Spalte Löschen -->
                 </tr>
             </thead>
             <tbody id="members"></tbody>
@@ -215,7 +216,6 @@
                 <input type="text" id="editCity" placeholder="Ort">
                 <button type="submit">Speichern</button>
             </form>
-            <button id="deleteMemberButton" class="delete-button">Löschen</button>
         </div>
     </div>
 
@@ -224,16 +224,15 @@
     <script>
         // Firebase-Konfiguration
         const firebaseConfig = {
-          apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
-          authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
-          projectId: "mitgliederverwaltung-3458b",
-          storageBucket: "mitgliederverwaltung-3458b.appspot.com",
-          messagingSenderId: "916656812587",
-          appId: "1:916656812587:web:23b510f805c800f62af06e"
+            apiKey: "Ihr_API_Key",
+            authDomain: "Ihr_Auth_Domain",
+            projectId: "Ihr_Project_ID",
+            storageBucket: "Ihr_Storage_Bucket",
+            messagingSenderId: "Ihre_Messaging_Sender_ID",
+            appId: "Ihre_App_ID"
         };
 
         // Firebase initialisieren
-        console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const membersCollection = db.collection("members");
@@ -264,9 +263,7 @@
             const zip = document.getElementById("addZip").value;
             const city = document.getElementById("addCity").value;
             try {
-                console.log("Füge neues Mitglied hinzu...");
                 await membersCollection.add({ memberNumber, name, email, phone, address, zip, city });
-                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, name, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -276,11 +273,8 @@
 
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
-        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
         membersCollection.onSnapshot((snapshot) => {
-            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
-                console.log("Keine Mitglieder in der Datenbank vorhanden.");
                 document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
                 return;
             }
@@ -289,8 +283,6 @@
             document.getElementById("loadingMessage").style.display = "none";
             snapshot.forEach(async (doc) => {
                 const member = doc.data();
-                console.log("Mitgliedsdaten erhalten:", doc.id, member);
-
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
@@ -323,36 +315,37 @@
                 tr.appendChild(cityTd);
 
                 const years = [2022, 2023, 2024, 2025, 2026];
-for (const year of years) {
-    const paymentTd = document.createElement("td");
-    let totalPayment = 0;
-    const financeQuery = await financeCollection.get();
-    financeQuery.forEach((financeDoc) => {
-        const financeData = financeDoc.data();
-        const memberNameParts = member.name.toLowerCase().split(' ');
-        const noteLower = financeData.note.toLowerCase();
-        if (
-            memberNameParts.every(namePart => noteLower.includes(namePart)) && // Überprüfen, ob alle Teile des Namens in der Bemerkung vorkommen
-            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
-        ) {
-            if (financeData.category === "Mitgliederbeitrag") {
-                totalPayment += parseFloat(financeData.amount);
-            }
-        }
-    });
+                for (const year of years) {
+                    const paymentTd = document.createElement("td");
+                    let totalPayment = 0;
+                    const financeQuery = await financeCollection.get();
+                    financeQuery.forEach((financeDoc) => {
+                        const financeData = financeDoc.data();
+                        const memberNameParts = member.name.toLowerCase().split(' ');
+                        const noteLower = financeData.note.toLowerCase();
+                        if (
+                            memberNameParts.every(namePart => noteLower.includes(namePart)) &&
+                            financeData.yearlyFee === year
+                        ) {
+                            if (financeData.category === "Mitgliederbeitrag") {
+                                totalPayment += parseFloat(financeData.amount);
+                            }
+                        }
+                    });
 
-    paymentTd.textContent = totalPayment;
-    tr.appendChild(paymentTd);
-}
+                    paymentTd.textContent = totalPayment;
+                    tr.appendChild(paymentTd);
+                }
 
-            
+                // Bearbeiten-Button
+                const editTd = document.createElement("td");
+                editTd.appendChild(createEditButton(doc.id, member));
+                tr.appendChild(editTd);
 
-                const actionsTd = document.createElement("td");
-                const editButton = document.createElement("button");
-                editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditModal(doc.id, member));
-                actionsTd.appendChild(editButton);
-                tr.appendChild(actionsTd);
+                // Löschen-Button
+                const deleteTd = document.createElement("td");
+                deleteTd.appendChild(createDeleteButton(doc.id));
+                tr.appendChild(deleteTd);
 
                 membersTable.appendChild(tr);
             });
@@ -361,12 +354,18 @@ for (const year of years) {
             document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
         });
 
-        // Bearbeiten-Modul öffnen
+        // Bearbeiten-Funktion
         const editMemberModal = document.getElementById("editMemberModal");
         const closeModal = document.getElementById("closeModal");
         const editMemberForm = document.getElementById("editMemberForm");
-        const deleteMemberButton = document.getElementById("deleteMemberButton");
         let currentEditMemberId = null;
+
+        const createEditButton = (memberId, memberData) => {
+            const editButton = document.createElement("button");
+            editButton.textContent = "Bearbeiten";
+            editButton.addEventListener("click", () => openEditModal(memberId, memberData));
+            return editButton;
+        };
 
         function openEditModal(id, member) {
             currentEditMemberId = id;
@@ -402,17 +401,21 @@ for (const year of years) {
             }
         });
 
-        // Mitglied löschen
-        deleteMemberButton.addEventListener("click", async () => {
-            if (currentEditMemberId) {
+        // Löschen-Funktion
+        const createDeleteButton = (memberId) => {
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Löschen";
+            deleteButton.className = "delete-button";
+            deleteButton.addEventListener("click", async () => {
                 try {
-                    await membersCollection.doc(currentEditMemberId).delete();
-                    editMemberModal.style.display = "none";
+                    await membersCollection.doc(memberId).delete();
+                    document.querySelector(`tr[data-id="${memberId}"]`).remove();
                 } catch (error) {
                     console.error("Fehler beim Löschen des Mitglieds: ", error);
                 }
-            }
-        });
+            });
+            return deleteButton;
+        };
 
         // Mitglieder exportieren (Excel)
         document.getElementById("exportButton").addEventListener("click", async () => {
