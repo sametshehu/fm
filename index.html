@@ -159,8 +159,7 @@
             <h2>Neues Mitglied hinzufügen</h2>
             <form id="addMemberForm">
                 <input type="text" id="addMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="addFirstName" placeholder="Vorname" required>
-                <input type="text" id="addLastName" placeholder="Nachname" required>
+                <input type="text" id="addName" placeholder="Name" required>
                 <input type="email" id="addEmail" placeholder="Email">
                 <input type="text" id="addPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
                 <input type="text" id="addAddress" placeholder="Adresse">
@@ -183,8 +182,7 @@
             <thead>
                 <tr>
                     <th>Mitgliedsnummer</th>
-                    <th>Vorname</th>
-                    <th>Nachname</th>
+                    <th>Name</th>
                     <th>Email</th>
                     <th>Telefonnummer</th>
                     <th>Adresse</th>
@@ -209,8 +207,7 @@
             <h2>Mitglied bearbeiten</h2>
             <form id="editMemberForm">
                 <input type="text" id="editMemberNumber" placeholder="Mitgliedsnummer" required>
-                <input type="text" id="editFirstName" placeholder="Vorname" required>
-                <input type="text" id="editLastName" placeholder="Nachname" required>
+                <input type="text" id="editName" placeholder="Name" required>
                 <input type="email" id="editEmail" placeholder="Email">
                 <input type="text" id="editPhone" placeholder="Telefonnummer" pattern="[0-9]{10,15}" title="Bitte geben Sie eine gültige Telefonnummer ein (10-15 Ziffern)">
                 <input type="text" id="editAddress" placeholder="Adresse">
@@ -260,15 +257,16 @@
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const memberNumber = document.getElementById("addMemberNumber").value;
-            const firstName = document.getElementById("addFirstName").value;
-            const lastName = document.getElementById("addLastName").value;
+            const name = document.getElementById("addName").value;
             const email = document.getElementById("addEmail").value;
             const phone = document.getElementById("addPhone").value;
             const address = document.getElementById("addAddress").value;
             const zip = document.getElementById("addZip").value;
             const city = document.getElementById("addCity").value;
             try {
-                await membersCollection.add({ memberNumber, firstName, lastName, email, phone, address, zip, city });
+                console.log("Füge neues Mitglied hinzu...");
+                await membersCollection.add({ memberNumber, name, email, phone, address, zip, city });
+                console.log("Mitglied erfolgreich hinzugefügt: ", { memberNumber, name, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -278,16 +276,21 @@
 
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
+        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
         membersCollection.onSnapshot((snapshot) => {
+            console.log("Snapshot erhalten: Anzahl der Dokumente: ", snapshot.size);
             if (snapshot.empty) {
+                console.log("Keine Mitglieder in der Datenbank vorhanden.");
                 document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
                 return;
             }
 
             membersTable.innerHTML = "";
             document.getElementById("loadingMessage").style.display = "none";
-            snapshot.forEach((doc) => {
+            snapshot.forEach(async (doc) => {
                 const member = doc.data();
+                console.log("Mitgliedsdaten erhalten:", doc.id, member);
+
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
@@ -295,13 +298,9 @@
                 memberNumberTd.textContent = member.memberNumber;
                 tr.appendChild(memberNumberTd);
 
-                const firstNameTd = document.createElement("td");
-                firstNameTd.textContent = member.firstName;
-                tr.appendChild(firstNameTd);
-
-                const lastNameTd = document.createElement("td");
-                lastNameTd.textContent = member.lastName;
-                tr.appendChild(lastNameTd);
+                const nameTd = document.createElement("td");
+                nameTd.textContent = member.name;
+                tr.appendChild(nameTd);
 
                 const emailTd = document.createElement("td");
                 emailTd.textContent = member.email;
@@ -323,25 +322,39 @@
                 cityTd.textContent = member.city;
                 tr.appendChild(cityTd);
 
-                // Jahresdaten hinzufügen
-                const years = ["2022", "2023", "2024", "2025", "2026"];
-                years.forEach((year) => {
-                    const yearTd = document.createElement("td");
-                    yearTd.textContent = member[year] || "-";
-                    tr.appendChild(yearTd);
-                });
+                const years = [2022, 2023, 2024, 2025, 2026];
+                for (const year of years) {
+                    const paymentTd = document.createElement("td");
+                    let totalPayment = 0;
+                    const financeQuery = await financeCollection.get();
+                    financeQuery.forEach((financeDoc) => {
+                        const financeData = financeDoc.data();
+                        if (
+                            financeData.note.includes(member.name.split(' ')[0]) && // Überprüfen, ob der Vorname in der Bemerkung vorkommt
+                            financeData.note.includes(member.name.split(' ')[1]) && // Überprüfen, ob der Nachname in der Bemerkung vorkommt
+                            financeData.yearlyFee === year // Überprüfen, ob der Mitgliedsbeitrag für das Jahr zutrifft
+                        ) {
+                            if (financeData.category === "Mitgliederbeitrag") {
+                                totalPayment += parseFloat(financeData.amount);
+                            }
+                        }
+                    });
+
+                    paymentTd.textContent = totalPayment;
+                    tr.appendChild(paymentTd);
+                }
 
                 const actionsTd = document.createElement("td");
                 const editButton = document.createElement("button");
                 editButton.textContent = "Bearbeiten";
-                editButton.addEventListener("click", () => openEditMemberModal(doc.id, member));
+                editButton.addEventListener("click", () => openEditModal(doc.id, member));
                 actionsTd.appendChild(editButton);
                 tr.appendChild(actionsTd);
 
                 membersTable.appendChild(tr);
             });
         }, (error) => {
-            console.error("Fehler beim Abrufen der Mitglieder: ", error);
+            console.error("Fehler beim Abrufen der Mitgliederliste: ", error);
             document.getElementById("loadingMessage").textContent = "Fehler beim Laden der Mitglieder.";
         });
 
@@ -352,11 +365,10 @@
         const deleteMemberButton = document.getElementById("deleteMemberButton");
         let currentEditMemberId = null;
 
-        function openEditMemberModal(id, member) {
+        function openEditModal(id, member) {
             currentEditMemberId = id;
             document.getElementById("editMemberNumber").value = member.memberNumber;
-            document.getElementById("editFirstName").value = member.firstName;
-            document.getElementById("editLastName").value = member.lastName;
+            document.getElementById("editName").value = member.name;
             document.getElementById("editEmail").value = member.email;
             document.getElementById("editPhone").value = member.phone;
             document.getElementById("editAddress").value = member.address;
@@ -373,15 +385,14 @@
         editMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const memberNumber = document.getElementById("editMemberNumber").value;
-            const firstName = document.getElementById("editFirstName").value;
-            const lastName = document.getElementById("editLastName").value;
+            const name = document.getElementById("editName").value;
             const email = document.getElementById("editEmail").value;
             const phone = document.getElementById("editPhone").value;
             const address = document.getElementById("editAddress").value;
             const zip = document.getElementById("editZip").value;
             const city = document.getElementById("editCity").value;
             try {
-                await membersCollection.doc(currentEditMemberId).update({ memberNumber, firstName, lastName, email, phone, address, zip, city });
+                await membersCollection.doc(currentEditMemberId).update({ memberNumber, name, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
@@ -398,6 +409,48 @@
                     console.error("Fehler beim Löschen des Mitglieds: ", error);
                 }
             }
+        });
+
+        // Mitglieder exportieren (Excel)
+        document.getElementById("exportButton").addEventListener("click", async () => {
+            try {
+                const snapshot = await membersCollection.get();
+                const members = [];
+                snapshot.forEach((doc) => {
+                    members.push(doc.data());
+                });
+
+                const worksheet = XLSX.utils.json_to_sheet(members);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
+                XLSX.writeFile(workbook, "mitglieder.xlsx");
+            } catch (error) {
+                console.error("Fehler beim Exportieren der Mitglieder: ", error);
+            }
+        });
+
+        // Mitglieder importieren (Excel)
+        document.getElementById("importFile").addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const members = XLSX.utils.sheet_to_json(worksheet);
+
+                for (const member of members) {
+                    try {
+                        await membersCollection.add(member);
+                    } catch (error) {
+                        console.error("Fehler beim Importieren des Mitglieds: ", error);
+                    }
+                }
+            };
+            reader.readAsArrayBuffer(file);
         });
     </script>
 </body>
