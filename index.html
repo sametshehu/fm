@@ -303,12 +303,12 @@
                 tr.appendChild(memberNumberTd);
 
                 const firstNameTd = document.createElement("td");
-$1firstNameTd.textContent = member.firstName;
-$1tr.appendChild(firstNameTd);
+                firstNameTd.textContent = member.firstName;
+                tr.appendChild(firstNameTd);
 
-$1const lastNameTd = document.createElement("td");
-$1lastNameTd.textContent = member.lastName;
-$1tr.appendChild(lastNameTd);
+                const lastNameTd = document.createElement("td");
+                lastNameTd.textContent = member.lastName;
+                tr.appendChild(lastNameTd);
 
                 const emailTd = document.createElement("td");
                 emailTd.textContent = member.email;
@@ -394,7 +394,8 @@ $1tr.appendChild(lastNameTd);
         editMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const memberNumber = document.getElementById("editMemberNumber").value;
-            const name = document.getElementById("editName").value;
+            const firstName = document.getElementById("editFirstName").value;
+            const lastName = document.getElementById("editLastName").value;
             const email = document.getElementById("editEmail").value;
             const phone = document.getElementById("editPhone").value;
             const address = document.getElementById("editAddress").value;
