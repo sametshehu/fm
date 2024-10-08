@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Finanzverwaltung</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -243,21 +245,16 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <script>
-        
-        <script type="module">
-    import firebaseConfig from './firebaseConfig.js';
-    
-    // Firebase initialisieren
-    console.log("Initialisiere Firebase...");
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
-    const membersCollection = db.collection("members");
-    const financeCollection = db.collection("finances");
-            
-                       // Neues Finanzdatensatz hinzufügen - Modal öffnen
+        import firebaseConfig from './firebaseConfig.js';
+
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const membersCollection = db.collection("members");
+        const financeCollection = db.collection("finances");
+
+        // Neues Finanzdatensatz hinzufügen - Modal öffnen
         const addFinanceModal = document.getElementById("addFinanceModal");
         const openAddFinanceModalButton = document.getElementById("openAddFinanceModalButton");
         const closeAddFinanceModal = document.getElementById("closeAddFinanceModal");
@@ -423,50 +420,31 @@
 
         // Exportieren der Finanzdaten
         document.getElementById("exportFinanceButton").addEventListener("click", async () => {
-            try {
-                const snapshot = await financeCollection.get();
-                if (snapshot.empty) {
-                    alert("Keine Finanzdaten zum Exportieren vorhanden.");
-                    return;
-                }
-
-                const financeData = [];
-                snapshot.forEach((doc) => {
-                    financeData.push(doc.data());
-                });
-
-                const worksheet = XLSX.utils.json_to_sheet(financeData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzen");
-                XLSX.writeFile(workbook, "Finanzen.xlsx");
-            } catch (error) {
-                console.error("Fehler beim Exportieren der Finanzdaten: ", error);
-            }
+            const snapshot = await financeCollection.get();
+            const finances = snapshot.docs.map(doc => doc.data());
+            const worksheet = XLSX.utils.json_to_sheet(finances);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzen");
+            XLSX.writeFile(workbook, "finanzen.xlsx");
         });
 
         // Importieren der Finanzdaten
-        document.getElementById("importFinanceFile").addEventListener("change", async (e) => {
+        document.getElementById("importFinanceFile").addEventListener("change", (e) => {
             const file = e.target.files[0];
-            if (!file) {
-                return;
-            }
-
             const reader = new FileReader();
-            reader.onload = async (e) => {
-                const data = new Uint8Array(e.target.result);
+            reader.onload = (event) => {
+                const data = new Uint8Array(event.target.result);
                 const workbook = XLSX.read(data, { type: "array" });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
-                const financeData = XLSX.utils.sheet_to_json(worksheet);
-
-                try {
-                    for (const finance of financeData) {
+                const json = XLSX.utils.sheet_to_json(worksheet);
+                json.forEach(async (finance) => {
+                    try {
                         await financeCollection.add(finance);
+                    } catch (error) {
+                        console.error("Fehler beim Importieren des Finanzdatensatzes: ", error);
                     }
-                    alert("Finanzdaten erfolgreich importiert.");
-                } catch (error) {
-                    console.error("Fehler beim Importieren der Finanzdaten: ", error);
-                }
+                });
             };
             reader.readAsArrayBuffer(file);
         });
