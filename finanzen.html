@@ -140,8 +140,21 @@
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <script>
+        // Firebase-Konfiguration
+        const firebaseConfig = {
+            apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
+            authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
+            projectId: "mitgliederverwaltung-3458b",
+            storageBucket: "mitgliederverwaltung-3458b.appspot.com",
+            messagingSenderId: "916656812587",
+            appId: "1:916656812587:web:23b510f805c800f62af06e"
+        };
+
+        // Firebase initialisieren
+        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const financeCollection = db.collection("finances");
+
         let selectedColumn = null;
 
         // Spalte hinzufügen
@@ -164,14 +177,18 @@
         });
 
         // Event Listener für Spaltenüberschriften hinzufügen
-        const headerCells = document.querySelectorAll("#financeTableHeader th");
-        headerCells.forEach((headerCell, index) => {
-            headerCell.addEventListener("click", (event) => {
-                event.preventDefault();
-                selectedColumn = index; // Speichert den Index der angeklickten Spalte
-                showContextMenu(event.clientX, event.clientY);
+        function addHeaderEventListeners() {
+            const headerCells = document.querySelectorAll("#financeTableHeader th");
+            headerCells.forEach((headerCell, index) => {
+                headerCell.addEventListener("click", (event) => {
+                    event.preventDefault();
+                    selectedColumn = index; // Speichert den Index der angeklickten Spalte
+                    showContextMenu(event.clientX, event.clientY);
+                });
             });
-        });
+        }
+
+        addHeaderEventListeners();
 
         // Kontextmenü anzeigen
         function showContextMenu(x, y) {
@@ -216,21 +233,6 @@
                 }
             }
         });
-
-        // Firebase-Konfiguration
-        const firebaseConfig = {
-          apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
-          authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
-          projectId: "mitgliederverwaltung-3458b",
-          storageBucket: "mitgliederverwaltung-3458b.appspot.com",
-          messagingSenderId: "916656812587",
-          appId: "1:916656812587:web:23b510f805c800f62af06e"
-        };
-
-        // Firebase initialisieren
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const financeCollection = db.collection("finances");
 
         // Neues Finanzdatensatz hinzufügen - Modal öffnen
         const addFinanceModal = document.getElementById("addFinanceModal");
@@ -322,27 +324,6 @@
             document.getElementById("loadingFinanceMessage").textContent = "Fehler beim Laden der Finanztransaktionen.";
         });
 
-        // Neue Spalte hinzufügen
-        const addColumnButton = document.getElementById("addColumnButton");
-        addColumnButton.addEventListener("click", () => {
-            const newColumnName = prompt("Bitte geben Sie den Namen der neuen Spalte ein:");
-            if (newColumnName) {
-                // Füge die neue Spalte zur Tabelle hinzu
-                const financeTableHeader = document.getElementById("financeTableHeader");
-                const newTh = document.createElement("th");
-                newTh.textContent = newColumnName;
-                financeTableHeader.insertBefore(newTh, financeTableHeader.lastElementChild);
-
-                // Füge die neue Spalte zu jedem Tabellenzeile hinzu
-                const financeRows = document.querySelectorAll("#finances tr");
-                financeRows.forEach((row) => {
-                    const newTd = document.createElement("td");
-                    newTd.textContent = "-"; // Platzhalterwert
-                    row.insertBefore(newTd, row.lastElementChild);
-                });
-            }
-        });
-
         // Bearbeiten-Modul öffnen
         const editFinanceModal = document.getElementById("editFinanceModal");
         const closeEditFinanceModal = document.getElementById("closeEditFinanceModal");
@@ -396,39 +377,14 @@
             }
         });
 
-        // Exportieren der Finanzdaten
-        document.getElementById("exportFinanceButton").addEventListener("click", async () => {
-            try {
-                const snapshot = await financeCollection.get();
-                if (snapshot.empty) {
-                    alert("Keine Finanzdaten zum Exportieren vorhanden.");
-                    return;
-                }
-
-                const financeData = [];
-                snapshot.forEach((doc) => {
-                    financeData.push(doc.data());
-                });
-
-                const worksheet = XLSX.utils.json_to_sheet(financeData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Finanzen");
-                XLSX.writeFile(workbook, "Finanzen.xlsx");
-            } catch (error) {
-                console.error("Fehler beim Exportieren der Finanzdaten: ", error);
-            }
-        });
-
-        // Importieren der Finanzdaten
+        // Mitglieder importieren (Excel)
         document.getElementById("importFinanceFile").addEventListener("change", async (e) => {
             const file = e.target.files[0];
-            if (!file) {
-                return;
-            }
+            if (!file) return;
 
             const reader = new FileReader();
-            reader.onload = async (e) => {
-                const data = new Uint8Array(e.target.result);
+            reader.onload = async (event) => {
+                const data = new Uint8Array(event.target.result);
                 const workbook = XLSX.read(data, { type: "array" });
                 const sheetName = workbook.SheetNames[0];
                 const worksheet = workbook.Sheets[sheetName];
