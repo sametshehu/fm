@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Moschee Drita - Mitgliederverwaltung</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -67,7 +69,6 @@
             padding: 10px;
             border: 1px solid #ddd;
             text-align: left;
-            cursor: pointer;
         }
 
         /* Modal Styling */
@@ -122,7 +123,7 @@
             background-color: #c82333;
         }
 
-        #openAddModalButton, #manageColumnsButton {
+        #openAddModalButton {
             width: calc(100% - 40px);
             max-width: 500px;
             padding: 10px;
@@ -135,7 +136,7 @@
             cursor: pointer;
         }
 
-        #openAddModalButton:hover, #manageColumnsButton:hover {
+        #openAddModalButton:hover {
             background-color: #0056b3;
         }
 
@@ -143,27 +144,6 @@
             text-align: center;
             font-size: 18px;
             margin: 20px 0;
-        }
-
-        .filter-modal {
-            display: none;
-            position: fixed;
-            z-index: 2;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-        }
-
-        .filter-modal-content {
-            background-color: #fff;
-            margin: 10% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 90%;
-            max-width: 400px;
-            border-radius: 8px;
         }
     </style>
 </head>
@@ -193,28 +173,7 @@
         </div>
     </div>
 
-    <!-- Filter Modal -->
-    <div id="filterModal" class="filter-modal">
-        <div class="filter-modal-content">
-            <span id="closeFilterModal" class="close">&times;</span>
-            <h2>Filter anwenden</h2>
-            <div id="filterOptions"></div>
-            <button id="applyFilterButton">Filter anwenden</button>
-        </div>
-    </div>
-
-    <!-- Spaltenverwaltung Modal -->
-    <div id="manageColumnsModal" class="filter-modal">
-        <div class="filter-modal-content">
-            <span id="closeManageColumnsModal" class="close">&times;</span>
-            <h2>Spaltenverwaltung</h2>
-            <div id="columnsOptions"></div>
-            <button id="saveColumnsButton">Speichern</button>
-        </div>
-    </div>
-
     <button id="openAddModalButton">Neues Mitglied hinzufügen</button>
-    <button id="manageColumnsButton">Spalten verwalten</button>
     <button id="exportButton">Mitglieder exportieren (Excel)</button>
     <input type="file" id="importFile" accept=".xlsx, .xls" />
 
@@ -224,7 +183,22 @@
         <div class="loading" id="loadingMessage">Lade Mitglieder...</div>
         <table id="membersTable">
             <thead>
-                <tr id="membersTableHeader"></tr>
+                <tr>
+                    <th>Mitgliedsnummer</th>
+                    <th>Vorname</th>
+                    <th>Nachname</th>
+                    <th>Email</th>
+                    <th>Telefonnummer</th>
+                    <th>Adresse</th>
+                    <th>PLZ</th>
+                    <th>Ort</th>
+                    <th>2022</th>
+                    <th>2023</th>
+                    <th>2024</th>
+                    <th>2025</th>
+                    <th>2026</th>
+                    <th>Aktionen</th>
+                </tr>
             </thead>
             <tbody id="members"></tbody>
         </table>
@@ -250,50 +224,13 @@
         </div>
     </div>
 
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.16.0/firebase-firestore-compat.js"></script>
+    <!-- Firebase Konfiguration und Initialisierung -->
+    <script src="firebaseConfig.js"></script>
     <script>
-        // Firebase-Konfiguration
-        const firebaseConfig = {
-          apiKey: "AIzaSyD5asuJN_0f_wcP3KidUqAYyEsCvtPaIeI",
-          authDomain: "mitgliederverwaltung-3458b.firebaseapp.com",
-          projectId: "mitgliederverwaltung-3458b",
-          storageBucket: "mitgliederverwaltung-3458b.appspot.com",
-          messagingSenderId: "916656812587",
-          appId: "1:916656812587:web:23b510f805c800f62af06e"
-        };
-
         // Firebase initialisieren
-        console.log("Initialisiere Firebase...");
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const membersCollection = db.collection("members");
-        const columnsCollection = db.collection("columns");
-
-        let columns = [];
-
-        // Spalten laden und Tabelle aktualisieren
-        async function loadColumns() {
-            const snapshot = await columnsCollection.get();
-            columns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            renderTableHeader();
-            loadMembers();
-        }
-
-        // Tabelle mit Spaltenüberschriften rendern
-        function renderTableHeader() {
-            const headerRow = document.getElementById("membersTableHeader");
-            headerRow.innerHTML = "";
-            columns.forEach(column => {
-                const th = document.createElement("th");
-                th.textContent = column.name;
-                th.setAttribute("data-column", column.id);
-                headerRow.appendChild(th);
-            });
-            const actionsTh = document.createElement("th");
-            actionsTh.textContent = "Aktionen";
-            headerRow.appendChild(actionsTh);
-        }
 
         // Neues Mitglied hinzufügen - Modal öffnen
         const addMemberModal = document.getElementById("addMemberModal");
@@ -312,15 +249,16 @@
         const addMemberForm = document.getElementById("addMemberForm");
         addMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const memberData = {};
-            columns.forEach(column => {
-                const value = document.getElementById(`add${column.id}`).value;
-                memberData[column.id] = value;
-            });
+            const memberNumber = document.getElementById("addMemberNumber").value;
+            const vorname = document.getElementById("addVorname").value;
+            const nachname = document.getElementById("addNachname").value;
+            const email = document.getElementById("addEmail").value;
+            const phone = document.getElementById("addPhone").value;
+            const address = document.getElementById("addAddress").value;
+            const zip = document.getElementById("addZip").value;
+            const city = document.getElementById("addCity").value;
             try {
-                console.log("Füge neues Mitglied hinzu...");
-                await membersCollection.add(memberData);
-                console.log("Mitglied erfolgreich hinzugefügt: ", memberData);
+                await membersCollection.add({ memberNumber, vorname, nachname, email, phone, address, zip, city });
                 addMemberForm.reset();
                 addMemberModal.style.display = "none";
             } catch (error) {
@@ -330,26 +268,58 @@
 
         // Mitgliederliste anzeigen
         const membersTable = document.getElementById("members");
-        console.log("Höre auf Änderungen in der Mitglieder-Collection...");
-        async function loadMembers() {
-            const snapshot = await membersCollection.get();
+        membersCollection.onSnapshot((snapshot) => {
             if (snapshot.empty) {
-                console.log("Keine Mitglieder in der Datenbank vorhanden.");
                 document.getElementById("loadingMessage").textContent = "Keine Mitglieder gefunden.";
                 return;
             }
 
             membersTable.innerHTML = "";
             document.getElementById("loadingMessage").style.display = "none";
-            snapshot.forEach(doc => {
+            snapshot.forEach((doc) => {
                 const member = doc.data();
                 const tr = document.createElement("tr");
                 tr.setAttribute("data-id", doc.id);
 
-                columns.forEach(column => {
-                    const td = document.createElement("td");
-                    td.textContent = member[column.id] || "";
-                    tr.appendChild(td);
+                const memberNumberTd = document.createElement("td");
+                memberNumberTd.textContent = member.memberNumber;
+                tr.appendChild(memberNumberTd);
+
+                const vornameTd = document.createElement("td");
+                vornameTd.textContent = member.vorname;
+                tr.appendChild(vornameTd);
+
+                const nachnameTd = document.createElement("td");
+                nachnameTd.textContent = member.nachname;
+                tr.appendChild(nachnameTd);
+
+                const emailTd = document.createElement("td");
+                emailTd.textContent = member.email;
+                tr.appendChild(emailTd);
+
+                const phoneTd = document.createElement("td");
+                phoneTd.textContent = member.phone;
+                tr.appendChild(phoneTd);
+
+                const addressTd = document.createElement("td");
+                addressTd.textContent = member.address;
+                tr.appendChild(addressTd);
+
+                const zipTd = document.createElement("td");
+                zipTd.textContent = member.zip;
+                tr.appendChild(zipTd);
+
+                const cityTd = document.createElement("td");
+                cityTd.textContent = member.city;
+                tr.appendChild(cityTd);
+
+                const years = [2022, 2023, 2024, 2025, 2026];
+                years.forEach((year) => {
+                    const paymentTd = document.createElement("td");
+                    let totalPayment = 0;
+                    // Hier kann ein Abgleich mit der Finanzen-Datenbank durchgeführt werden, um die Zahlung für jedes Jahr zu summieren
+                    paymentTd.textContent = totalPayment;
+                    tr.appendChild(paymentTd);
                 });
 
                 const actionsTd = document.createElement("td");
@@ -361,7 +331,7 @@
 
                 membersTable.appendChild(tr);
             });
-        }
+        });
 
         // Bearbeiten-Modul öffnen
         const editMemberModal = document.getElementById("editMemberModal");
@@ -372,9 +342,14 @@
 
         function openEditModal(id, member) {
             currentEditMemberId = id;
-            columns.forEach(column => {
-                document.getElementById(`edit${column.id}`).value = member[column.id] || "";
-            });
+            document.getElementById("editMemberNumber").value = member.memberNumber;
+            document.getElementById("editVorname").value = member.vorname;
+            document.getElementById("editNachname").value = member.nachname;
+            document.getElementById("editEmail").value = member.email;
+            document.getElementById("editPhone").value = member.phone;
+            document.getElementById("editAddress").value = member.address;
+            document.getElementById("editZip").value = member.zip;
+            document.getElementById("editCity").value = member.city;
             editMemberModal.style.display = "block";
         }
 
@@ -385,12 +360,16 @@
         // Mitglied bearbeiten
         editMemberForm.addEventListener("submit", async (e) => {
             e.preventDefault();
-            const updatedData = {};
-            columns.forEach(column => {
-                updatedData[column.id] = document.getElementById(`edit${column.id}`).value;
-            });
+            const memberNumber = document.getElementById("editMemberNumber").value;
+            const vorname = document.getElementById("editVorname").value;
+            const nachname = document.getElementById("editNachname").value;
+            const email = document.getElementById("editEmail").value;
+            const phone = document.getElementById("editPhone").value;
+            const address = document.getElementById("editAddress").value;
+            const zip = document.getElementById("editZip").value;
+            const city = document.getElementById("editCity").value;
             try {
-                await membersCollection.doc(currentEditMemberId).update(updatedData);
+                await membersCollection.doc(currentEditMemberId).update({ memberNumber, vorname, nachname, email, phone, address, zip, city });
                 editMemberModal.style.display = "none";
             } catch (error) {
                 console.error("Fehler beim Aktualisieren des Mitglieds: ", error);
@@ -409,54 +388,47 @@
             }
         });
 
-        // Spalten verwalten - Modal öffnen
-        const manageColumnsModal = document.getElementById("manageColumnsModal");
-        const manageColumnsButton = document.getElementById("manageColumnsButton");
-        const closeManageColumnsModal = document.getElementById("closeManageColumnsModal");
-        const saveColumnsButton = document.getElementById("saveColumnsButton");
+        // Mitglieder exportieren (Excel)
+        document.getElementById("exportButton").addEventListener("click", async () => {
+            try {
+                const snapshot = await membersCollection.get();
+                const members = [];
+                snapshot.forEach((doc) => {
+                    members.push(doc.data());
+                });
 
-        manageColumnsButton.addEventListener("click", () => {
-            const columnsOptions = document.getElementById("columnsOptions");
-            columnsOptions.innerHTML = "";
-            columns.forEach(column => {
-                const div = document.createElement("div");
-                div.innerHTML = `
-                    <input type="checkbox" id="column_${column.id}" checked>
-                    <label for="column_${column.id}">${column.name}</label>
-                `;
-                columnsOptions.appendChild(div);
-            });
-            manageColumnsModal.style.display = "block";
+                const worksheet = XLSX.utils.json_to_sheet(members);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Mitglieder");
+                XLSX.writeFile(workbook, "mitglieder.xlsx");
+            } catch (error) {
+                console.error("Fehler beim Exportieren der Mitglieder: ", error);
+            }
         });
 
-        closeManageColumnsModal.addEventListener("click", () => {
-            manageColumnsModal.style.display = "none";
-        });
+        // Mitglieder importieren (Excel)
+        document.getElementById("importFile").addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-        saveColumnsButton.addEventListener("click", async () => {
-            const selectedColumns = [];
-            columns.forEach(column => {
-                if (document.getElementById(`column_${column.id}`).checked) {
-                    selectedColumns.push(column);
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: "array" });
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                const members = XLSX.utils.sheet_to_json(worksheet);
+
+                for (const member of members) {
+                    try {
+                        await membersCollection.add(member);
+                    } catch (error) {
+                        console.error("Fehler beim Importieren des Mitglieds: ", error);
+                    }
                 }
-            });
-            // Update columns collection in Firebase (for simplicity, replace all columns)
-            const batch = db.batch();
-            columns.forEach(column => {
-                const columnRef = columnsCollection.doc(column.id);
-                batch.delete(columnRef);
-            });
-            selectedColumns.forEach(column => {
-                const columnRef = columnsCollection.doc(column.id);
-                batch.set(columnRef, { name: column.name });
-            });
-            await batch.commit();
-            manageColumnsModal.style.display = "none";
-            loadColumns();
+            };
+            reader.readAsArrayBuffer(file);
         });
-
-        // Initial Load
-        loadColumns();
     </script>
 </body>
 </html>
